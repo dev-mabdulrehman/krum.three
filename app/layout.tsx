@@ -1,4 +1,5 @@
 import { Analytics } from '@vercel/analytics/next';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import type { Metadata } from 'next';
 import { Poppins } from 'next/font/google';
 import './globals.css';
@@ -47,6 +48,7 @@ export default function RootLayout({
 				className={`${poppins.className} bg-cream selection:bg-forest text-forest-dark selection:text-white antialiased`}
 			>
 				<Analytics />
+				<SpeedInsights />
 				{children}
 			</body>
 		</html>
