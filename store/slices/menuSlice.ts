@@ -210,7 +210,7 @@ const menuSlice = createSlice({
 				if (state.items[updated.id]) {
 					state.items[updated.id] = {
 						...state.items[updated.id],
-						...updated.data,
+						...updated,
 					};
 				}
 			})

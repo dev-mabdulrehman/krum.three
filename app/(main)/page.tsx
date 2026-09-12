@@ -10,9 +10,6 @@ export default function HomePage() {
 			<TopLiveNotificationBar />
 			<HeroSection />
 			<SignaturesMenu />
-			{/* <BoxBuilder />
-			<HeritageStory />
-			<StudioSection /> */}
 			<CartDrawer />
 
 			<Footer />
