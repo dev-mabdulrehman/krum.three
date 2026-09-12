@@ -1,11 +1,22 @@
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import type { Metadata } from 'next';
-import { Poppins } from 'next/font/google';
+import { Playfair_Display, Plus_Jakarta_Sans, Poppins } from 'next/font/google';
 import './globals.css';
+import StoreProvider from './StoreProvider';
 const poppins = Poppins({
 	subsets: ['latin'],
 	weight: ['400', '500', '600', '700'],
+});
+
+const playfair = Playfair_Display({
+	subsets: ['latin'],
+	variable: '--font-display',
+});
+
+const jakarta = Plus_Jakarta_Sans({
+	subsets: ['latin'],
+	variable: '--font-sans',
 });
 
 export const metadata: Metadata = {
@@ -45,11 +56,13 @@ export default function RootLayout({
 	return (
 		<html lang='en' className='scroll-smooth'>
 			<body
-				className={`${poppins.className} bg-cream selection:bg-forest text-forest-dark selection:text-white antialiased`}
+				className={`${poppins.className} ${playfair.variable} ${jakarta.variable} bg-cream selection:bg-forest text-forest-dark selection:text-white antialiased`}
 			>
-				<Analytics />
-				<SpeedInsights />
-				{children}
+				<StoreProvider>
+					<Analytics />
+					<SpeedInsights />
+					{children}
+				</StoreProvider>
 			</body>
 		</html>
 	);
