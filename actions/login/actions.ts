@@ -41,17 +41,31 @@ export async function loginAction(
 			email,
 			password,
 		);
+
+		// 2. Get ID token from user
+		const idToken = await userCredential.user.getIdToken();
+
+		// 3. Store token in HTTP-only cookie
+		const cookieStore = await cookies();
+		cookieStore.set('session', idToken, {
+			httpOnly: true,
+			secure: process.env.NODE_ENV === 'production',
+			sameSite: 'lax',
+			path: '/',
+			maxAge: 60 * 60 * 24 * 7, // 7 days
+		});
 	} catch (err) {
 		return { error: 'Invalid email or password credentials.' };
 	}
 
-	// 5. Redirect to protected dashboard
+	// 4. Redirect to protected dashboard
 	redirect('/admin/dashboard');
 }
+
 export async function logoutAction() {
 	const cookieStore = await cookies();
 	cookieStore.delete('session');
-	redirect('/login');
+	redirect('/admin/login');
 }
 
 const forgotPasswordSchema = z.object({
@@ -66,6 +80,7 @@ export type ForgotPasswordFormState = {
 	message?: string;
 	error?: string;
 };
+
 export async function forgotPasswordAction(
 	prevState: ForgotPasswordFormState | null,
 	data: z.infer<typeof forgotPasswordSchema>,

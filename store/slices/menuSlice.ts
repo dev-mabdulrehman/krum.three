@@ -47,13 +47,16 @@ const initialState: MenuState = {
 };
 
 // Helper function to handle image uploads
-async function uploadImageIfFile(imageInput?: string | File): Promise<string> {
+async function uploadImageIfFile(
+	imageInput?: string | File,
+	name?: string,
+): Promise<string> {
 	if (!imageInput) return '';
 	if (typeof imageInput === 'string') return imageInput;
 
 	const storageRef = ref(
 		storage,
-		`menu-images/${Date.now()}_${imageInput.name}`,
+		`menu-images/${Date.now()}_${name?.replace(' ', '_').toLowerCase()}`,
 	);
 	const snapshot = await uploadBytes(storageRef, imageInput);
 	return await getDownloadURL(snapshot.ref);
@@ -88,9 +91,9 @@ export const addMenuItem = createAsyncThunk(
 		try {
 			const { imageFile, ...data } = payload;
 			let imgSrc = data.imgSrc || '';
-
+			let name = data.name;
 			if (imageFile) {
-				imgSrc = await uploadImageIfFile(imageFile);
+				imgSrc = await uploadImageIfFile(imageFile, name);
 			}
 
 			const docRef = await addDoc(collection(db, 'menuItems'), {
@@ -119,10 +122,10 @@ export const updateMenuItem = createAsyncThunk(
 		try {
 			const { id, data, imageFile, oldImgSrc } = payload;
 			let imgSrc = data.imgSrc || '';
-
+			let name = data.name;
 			if (imageFile) {
 				// 1. Upload the new image first
-				imgSrc = await uploadImageIfFile(imageFile);
+				imgSrc = await uploadImageIfFile(imageFile, name);
 
 				// 2. Delete the old image from storage if it exists
 				if (oldImgSrc && oldImgSrc.includes('firebasestorage')) {
