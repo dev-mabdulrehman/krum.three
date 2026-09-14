@@ -1,15 +1,17 @@
 'use client';
 
+import LogoReverse from '@/assets/imgs/logo_reverse.png';
 import {
-    Cookie,
-    LayoutDashboard,
-    LogOut,
-    Menu,
-    ShieldCheck,
-    ShoppingBag,
-    Store,
-    X
+	Cookie,
+	LayoutDashboard,
+	LogOut,
+	Menu,
+	ShieldCheck,
+	ShoppingBag,
+	Store,
+	X,
 } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
@@ -58,27 +60,13 @@ export default function AdminLayout({
 					>
 						{mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
 					</button>
-
-					<div className='flex justify-center items-center bg-primary shadow-sm rounded w-9 h-9 font-black text-white text-lg'>
-						K³
-					</div>
 					<div>
-						<h1 className='font-black text-gray-900 text-base md:text-lg leading-tight'>
-							Krum³ Confectionery
-						</h1>
-						<p className='hidden sm:block text-gray-500 text-xs'>
-							Admin Studio & Order Control
-						</p>
+						<Image alt='Logo' className='w-26' src={LogoReverse} />
 					</div>
 				</div>
 
 				{/* Active Session Status & Logout */}
 				<div className='flex items-center gap-4'>
-					<span className='hidden sm:inline-flex items-center gap-2 bg-green-50 px-3 py-1.5 border border-green-200 rounded-full font-semibold text-green-700 text-xs'>
-						<span className='bg-green-500 rounded-full w-2 h-2 animate-pulse' />
-						Cookie Active
-					</span>
-
 					<form action='/api/auth/logout' method='POST'>
 						<button
 							type='submit'

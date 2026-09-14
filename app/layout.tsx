@@ -2,6 +2,7 @@ import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import type { Metadata } from 'next';
 import { Playfair_Display, Plus_Jakarta_Sans, Poppins } from 'next/font/google';
+import { Toaster } from 'react-hot-toast';
 import './globals.css';
 import StoreProvider from './StoreProvider';
 const poppins = Poppins({
@@ -59,6 +60,7 @@ export default function RootLayout({
 				className={`${poppins.className} ${playfair.variable} ${jakarta.variable} bg-cream selection:bg-forest text-forest-dark selection:text-white antialiased`}
 			>
 				<StoreProvider>
+					<Toaster />
 					<Analytics />
 					<SpeedInsights />
 					{children}

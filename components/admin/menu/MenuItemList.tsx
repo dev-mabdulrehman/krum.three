@@ -4,10 +4,11 @@ import Button from '@/components/admin/Button';
 import FormHeader from '@/components/admin/FormHeader';
 import { MenuItem } from '@/store/slices/menuSlice';
 import { Plus } from 'lucide-react';
-import { MenuItemCard } from './MenuItemCard';
+import { MenuItemCard, MenuItemCardSkeleton } from './MenuItemCard';
 
 interface MenuItemListProps {
 	items: MenuItem[];
+	loading: boolean;
 	onEditItem: (item: MenuItem) => void;
 	onDeleteItem: (item: MenuItem) => void;
 	onOpenModal: () => void;
@@ -15,6 +16,7 @@ interface MenuItemListProps {
 
 export function MenuItemList({
 	items,
+	loading,
 	onEditItem,
 	onDeleteItem,
 	onOpenModal,
@@ -31,14 +33,11 @@ export function MenuItemList({
 					<Plus size={18} /> Add New Item
 				</Button>
 			</div>
-
-			{items.length === 0 ? (
-				<p className='py-4 text-gray-500 text-sm text-center'>
-					No menu items added yet.
-				</p>
-			) : (
-				<div className='divide-y divide-gray-100'>
-					{items.map(item => (
+			{loading
+				? Array.from({ length: 2 }).map((_, i) => (
+						<MenuItemCardSkeleton key={i} />
+					))
+				: items.map(item => (
 						<MenuItemCard
 							key={item.id}
 							item={item}
@@ -46,7 +45,12 @@ export function MenuItemList({
 							onDelete={onDeleteItem}
 						/>
 					))}
-				</div>
+			{!loading && items.length === 0 ? (
+				<p className='py-4 text-gray-500 text-sm text-center'>
+					No menu items added yet.
+				</p>
+			) : (
+				<></>
 			)}
 		</div>
 	);

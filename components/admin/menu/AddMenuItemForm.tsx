@@ -1,6 +1,5 @@
 'use client';
 
-import Button from '@/components/admin/Button';
 import Input from '@/components/admin/Input';
 import { MenuItem } from '@/store/slices/menuSlice';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -11,8 +10,6 @@ import {
 	FileText,
 	Image as ImageIcon,
 	Layers,
-	Plus,
-	Save,
 	Scale,
 	Sparkles,
 	Upload,
@@ -38,14 +35,12 @@ export type MenuFormData = z.infer<typeof menuSchema>;
 
 interface AddMenuItemFormProps {
 	initialValues?: MenuItem | null;
-	onSubmit: (data: MenuFormData, imageFile?: File) => void;
-	onCancel?: () => void;
+	onSubmit: (data: MenuFormData, imageFile?: File) => Promise<void> | void;
 }
 
 export function AddMenuItemForm({
 	initialValues,
 	onSubmit,
-	onCancel,
 }: AddMenuItemFormProps) {
 	const [selectedFile, setSelectedFile] = useState<File | null>(null);
 	const [previewUrl, setPreviewUrl] = useState<string>(
@@ -56,7 +51,7 @@ export function AddMenuItemForm({
 		register,
 		handleSubmit,
 		reset,
-		formState: { errors, isSubmitting },
+		formState: { errors },
 	} = useForm<MenuFormData>({
 		resolver: zodResolver(menuSchema),
 		defaultValues: {
@@ -108,12 +103,16 @@ export function AddMenuItemForm({
 		}
 	};
 
-	const handleFormSubmit = (data: MenuFormData) => {
-		onSubmit(data, selectedFile || undefined);
+	const handleFormSubmit = async (data: MenuFormData) => {
+		await onSubmit(data, selectedFile || undefined);
 	};
 
 	return (
-		<form onSubmit={handleSubmit(handleFormSubmit)} className='space-y-4'>
+		<form
+			id='menu-item-form'
+			onSubmit={handleSubmit(handleFormSubmit)}
+			className='space-y-4'
+		>
 			<Input
 				placeholder='Name (e.g. Very Velvet)'
 				icon={<Cookie size={18} />}
@@ -212,26 +211,6 @@ export function AddMenuItemForm({
 				error={errors.imgAlt?.message}
 				{...register('imgAlt')}
 			/>
-
-			<div className='flex lg:flex-row flex-col-reverse justify-end items-center gap-3 pt-4 border-black/10 border-t'>
-				{onCancel && (
-					<Button
-						type='button'
-						onClick={onCancel}
-						className='bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded font-semibold text-gray-700'
-					>
-						Cancel
-					</Button>
-				)}
-				<Button
-					type='submit'
-					disabled={isSubmitting}
-					className='flex justify-center items-center gap-2 bg-primary disabled:bg-primary/20 px-4 py-2 rounded font-black text-white'
-				>
-					{initialValues ? <Save size={18} /> : <Plus size={18} />}
-					{initialValues ? 'Update Item' : 'Add Item'}
-				</Button>
-			</div>
 		</form>
 	);
 }

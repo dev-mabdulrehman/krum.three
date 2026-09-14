@@ -1,15 +1,20 @@
 'use client';
 
+import Button from '@/components/admin/Button';
+import {
+	AddMenuItemForm,
+	MenuFormData,
+} from '@/components/admin/menu/AddMenuItemForm';
+import { Modal } from '@/components/ui/Modal';
 import { MenuItem } from '@/store/slices/menuSlice';
-import { X } from 'lucide-react';
-import { useEffect } from 'react';
-import { AddMenuItemForm, MenuFormData } from './AddMenuItemForm';
+import { Loader2, Plus, Save } from 'lucide-react';
+import { useState } from 'react';
 
 interface AddMenuItemModalProps {
 	isOpen: boolean;
 	initialValues?: MenuItem | null;
 	onClose: () => void;
-	onSubmit: (data: MenuFormData, imageFile?: File) => void;
+	onSubmit: (data: MenuFormData, imageFile?: File) => Promise<void> | void;
 }
 
 export function AddMenuItemModal({
@@ -18,40 +23,70 @@ export function AddMenuItemModal({
 	onClose,
 	onSubmit,
 }: AddMenuItemModalProps) {
-	useEffect(() => {
-		const handleKeyDown = (e: KeyboardEvent) => {
-			if (e.key === 'Escape') onClose();
-		};
-		if (isOpen) window.addEventListener('keydown', handleKeyDown);
-		return () => window.removeEventListener('keydown', handleKeyDown);
-	}, [isOpen, onClose]);
+	const isEditing = Boolean(initialValues);
+	const [isSubmitting, setIsSubmitting] = useState(false);
 
-	if (!isOpen) return null;
+	const handleFormSubmit = async (data: MenuFormData, imageFile?: File) => {
+		try {
+			setIsSubmitting(true);
+			await onSubmit(data, imageFile);
+		} finally {
+			setIsSubmitting(false);
+		}
+	};
 
 	return (
-		<div className='z-50 fixed inset-0 flex justify-center items-center bg-black/50 backdrop-blur-sm p-4'>
-			<div className='flex flex-col bg-white shadow-xl border border-black/10 rounded-lg w-full max-w-lg max-h-[90vh] overflow-hidden animate-in duration-150 fade-in zoom-in-95'>
-				<div className='flex justify-between items-center p-4 sm:p-6 border-black/10 border-b'>
-					<h3 className='font-black text-gray-900 text-lg'>
-						{initialValues ? 'Edit Menu Item' : 'Add New Item'}
-					</h3>
-					<button
+		<Modal
+			isOpen={isOpen}
+			onClose={onClose}
+			title={isEditing ? 'Edit Menu Item' : 'Add New Menu Item'}
+			description={
+				isEditing
+					? 'Update the details below for this item.'
+					: 'Fill out the form below to add a new item to your menu.'
+			}
+			maxWidth='lg'
+			footer={
+				<>
+					<Button
 						type='button'
 						onClick={onClose}
-						className='p-1 rounded-md text-gray-400 hover:text-gray-600 transition-colors'
+						disabled={isSubmitting}
+						className='bg-gray-100 hover:bg-gray-200 disabled:opacity-50 px-4 py-2 rounded font-semibold text-gray-700'
 					>
-						<X size={20} />
-					</button>
-				</div>
-
-				<div className='flex-1 p-4 sm:p-6 overflow-y-auto'>
-					<AddMenuItemForm
-						initialValues={initialValues}
-						onSubmit={onSubmit}
-						onCancel={onClose}
-					/>
-				</div>
-			</div>
-		</div>
+						Cancel
+					</Button>
+					<Button
+						type='submit'
+						form='menu-item-form'
+						disabled={isSubmitting}
+						className='flex justify-center items-center gap-2 bg-primary disabled:bg-primary/50 px-4 py-2 rounded font-black text-white'
+					>
+						{isSubmitting ? (
+							<>
+								<Loader2 size={18} className='animate-spin' />
+								<span>Saving...</span>
+							</>
+						) : (
+							<>
+								{isEditing ? (
+									<Save size={18} />
+								) : (
+									<Plus size={18} />
+								)}
+								<span>
+									{isEditing ? 'Update Item' : 'Add Item'}
+								</span>
+							</>
+						)}
+					</Button>
+				</>
+			}
+		>
+			<AddMenuItemForm
+				initialValues={initialValues}
+				onSubmit={handleFormSubmit}
+			/>
+		</Modal>
 	);
 }

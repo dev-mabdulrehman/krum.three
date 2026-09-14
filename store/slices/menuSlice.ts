@@ -42,7 +42,7 @@ const initialState: MenuState = {
 		'Morning Bake Out of Oven: 14 Fresh Boxes Remaining in Gujrat Studio Today',
 	activeFilter: 'all',
 	items: {},
-	loading: false,
+	loading: true,
 	error: null,
 };
 

@@ -112,7 +112,7 @@
   --color-tertiary-fixed-dim: #aecdbf;
   --color-on-primary-fixed-variant: #134f47;
   --color-on-surface-variant: #404946;
-  --color-primary: #135047;
+  --color-primary: #30685f;
   
   /* Border Radius */
   --radius-DEFAULT: 0.25rem;
@@ -142,6 +142,11 @@
   background: linear-gradient(145deg, rgba(48, 104, 95, 1) 26%, rgba(28, 44, 44, 1) 73%);
 }
 
-button, a{
+button, a {
   cursor: pointer;
+}
+
+::selection {
+  background-color: #30685f;
+  color: #ffffff;
 }
