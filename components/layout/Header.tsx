@@ -14,9 +14,7 @@ export default function Header() {
 	const totalCount = cartItems.reduce((acc, item) => acc + item.qty, 0);
 
 	return (
-		<header className='z-50 shadow-[0_1px_8px_rgba(0,0,0,0.04)] w-full'>
-			
-
+		<header className='z-50 shadow-[0_1px_8px_rgba(0,0,0,0.04)] border-white border-b-4 w-full'>
 			{/* Main Navbar */}
 			<div className='bg-primary text-on-primary'>
 				<div className='flex justify-between items-center gap-space-md mx-auto px-margin-mobile lg:px-gutter-desktop h-20 max-w-max-content-width'>

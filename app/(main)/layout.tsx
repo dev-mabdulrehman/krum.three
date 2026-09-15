@@ -9,8 +9,10 @@ export default function RootLayout({
 }) {
 	return (
 		<>
-			<TopNotificationBar />
-			<Header />
+			<div className='top-0 z-30 sticky'>
+				<TopNotificationBar />
+				<Header />
+			</div>
 			{children}
 		</>
 	);
