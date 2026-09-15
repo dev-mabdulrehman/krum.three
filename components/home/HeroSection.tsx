@@ -6,9 +6,6 @@ import { BadgeCheck, Box, Cookie, Flame, Medal, Scale } from "lucide-react";
 export default function HeroSection() {
 	return (
 		<section className='relative bg-gradient py-space-3xl lg:py-space-4xl w-full overflow-hidden text-on-primary'>
-			{/* Ambient organic gradient glow */}
-			{/* <Header />
-			<TopLiveNotificationBar /> */}
 			<div className='-top-24 -left-24 absolute bg-primary-container/40 blur-3xl rounded-full w-96 h-96 pointer-events-none'></div>
 			<div className='right-0 -bottom-24 absolute bg-secondary/15 blur-3xl rounded-full w-[30rem] h-[30rem] pointer-events-none'></div>
 			<div className='z-10 relative mx-auto px-margin-mobile lg:px-gutter-desktop max-w-max-content-width'>
@@ -138,7 +135,7 @@ export default function HeroSection() {
 							{/* Floating Badge 3: Single Origin */}
 							<div className='-bottom-4 left-1/4 z-20 absolute flex items-center gap-space-2xs bg-tertiary shadow-lg px-4 py-1.5 rounded-full font-label-sm text-label-sm text-on-tertiary'>
 								<span className='text-tertiary-fixed text-[16px] material-symbols-outlined'>
-									<BadgeCheck size={'16px'}/>
+									<BadgeCheck size={'16px'} />
 								</span>
 								<span>French Butter • Valrhona 70%</span>
 							</div>
