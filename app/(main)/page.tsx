@@ -1,5 +1,6 @@
 import CartDrawer from '@/components/CartDrawer';
 import HeroSection from '@/components/home/HeroSection';
+import { OrderProcessSection } from '@/components/home/OrderProcessSection';
 import SignaturesMenu from '@/components/home/SignaturesMenu';
 import Footer from '@/components/layout/Footer';
 
@@ -9,7 +10,7 @@ export default function HomePage() {
 			<HeroSection />
 			<SignaturesMenu />
 			<CartDrawer />
-
+			<OrderProcessSection />
 			<Footer />
 		</main>
 	);

@@ -5,7 +5,9 @@ import { addToCart } from '@/store/slices/cartSlice';
 import { MenuItem } from '@/types';
 import { Minus, Plus, ShoppingBag } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useState } from 'react';
+import Stars from '../Stars';
 
 interface MenuItemCardProps {
 	item: MenuItem;
@@ -38,7 +40,8 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
 	};
 
 	return (
-		<div
+		<Link
+			href={`/cookie/${item.id}`}
 			className='group flex flex-col justify-between bg-surface-container-low shadow-sm hover:shadow-xl p-space-md rounded-2xl transition-all duration-300 cookie-card'
 			data-id={item.id}
 		>
@@ -52,7 +55,6 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
 						fill
 						sizes='(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw'
 					/>
-
 					{/* Badges Overlay */}
 					<div className='top-3 left-3 z-10 absolute flex flex-wrap gap-1'>
 						{item.badge && (
@@ -66,7 +68,6 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
 							</span>
 						)}
 					</div>
-
 					{/* Stock Tag */}
 					{item.stockStatus && (
 						<div className='top-3 right-3 z-10 absolute'>
@@ -83,6 +84,10 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
 						<h3 className='font-headline-sm text-headline-sm text-primary leading-tight'>
 							{item.name}
 						</h3>
+					</div>
+					<div className='flex flex-row items-center gap-1'>
+						<small>Reviews:</small>
+						<Stars rating={3} />
 					</div>
 					<p className='font-title-md font-bold text-secondary text-title-md'>
 						PKR {item.price.toLocaleString()}
@@ -126,7 +131,7 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
 					<span>Add</span>
 				</button>
 			</div>
-		</div>
+		</Link>
 	);
 }
 
