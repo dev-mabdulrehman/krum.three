@@ -129,3 +129,50 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
 		</div>
 	);
 }
+
+export function MenuItemCardSkeleton() {
+	return (
+		<div className='flex flex-col justify-between bg-[#f8f6f0] p-4 border border-black/5 rounded-3xl w-full max-w-[320px] animate-pulse'>
+			<div>
+				{/* Image / Dark Green Box Placeholder */}
+				<div className='relative bg-[#1e4d40]/20 mb-4 rounded-2xl w-full aspect-square overflow-hidden'>
+					{/* Top Badges Placeholder */}
+					<div className='top-3 right-3 left-3 absolute flex justify-between items-center'>
+						<div className='bg-white/40 rounded-full w-12 h-5' />
+						<div className='bg-white/40 rounded-full w-24 h-6' />
+					</div>
+
+					{/* Center Icon/Image Loading Area */}
+					<div className='flex justify-center items-center h-full'>
+						<div className='bg-white/20 rounded-full w-32 h-32' />
+					</div>
+				</div>
+
+				{/* Content Section Placeholder */}
+				<div className='flex flex-col gap-1.5 px-1'>
+					{/* Title (Very Velvet) */}
+					<div className='bg-gray-300/60 rounded-md w-3/4 h-7' />
+
+					{/* Price (PKR 350) */}
+					<div className='bg-amber-800/20 mt-0.5 rounded-md w-2/5 h-6' />
+
+					{/* Description (Test) */}
+					<div className='bg-gray-300/50 mt-1 rounded-md w-1/2 h-4' />
+				</div>
+			</div>
+
+			{/* Actions / Quantity & Add Button Placeholder */}
+			<div className='flex items-center gap-3 mt-5 px-1'>
+				{/* Quantity Controls (- 1 +) */}
+				<div className='flex items-center bg-gray-200/60 p-1 rounded-2xl w-[120px] h-12'>
+					<div className='bg-white rounded-xl w-9 h-9' />
+					<div className='flex-1 bg-gray-300/60 mx-auto rounded w-4 h-5' />
+					<div className='bg-white rounded-xl w-9 h-9' />
+				</div>
+
+				{/* Add Button */}
+				<div className='flex-1 bg-[#1e4d40]/30 rounded-2xl h-12' />
+			</div>
+		</div>
+	);
+}

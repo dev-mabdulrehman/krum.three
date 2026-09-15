@@ -3,7 +3,7 @@
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchMenuItems } from '@/store/slices/menuSlice';
 import { useEffect } from 'react';
-import MenuItemCard from './MenuItemCard';
+import MenuItemCard, { MenuItemCardSkeleton } from './MenuItemCard';
 
 export default function SignaturesMenu() {
 	const dispatch = useAppDispatch();
@@ -43,9 +43,18 @@ export default function SignaturesMenu() {
 					className='gap-space-lg grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4'
 					id='cookies-grid'
 				>
-					{cookieList.map((cookie: any) => (
-						<MenuItemCard item={cookie} />
-					))}
+					{loading
+						? Array.from({ length: 4 }).map((_, i) => (
+								<MenuItemCardSkeleton key={i} />
+							))
+						: cookieList.map((cookie: any) => (
+								<MenuItemCard item={cookie} />
+							))}
+				</div>
+				<div className='font-body-md font-bold text-lg text-center'>
+					{!loading && Object.keys(items).length == 0
+						? 'No menu items yet!'
+						: ''}
 				</div>
 			</div>
 		</section>
