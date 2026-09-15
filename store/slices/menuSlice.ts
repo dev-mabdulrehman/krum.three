@@ -1,11 +1,12 @@
 import { db, storage } from '@/config/firebase';
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import {
-	addDoc,
 	collection,
 	deleteDoc,
 	doc,
+	getDoc,
 	getDocs,
+	setDoc,
 	updateDoc,
 } from 'firebase/firestore';
 import {
@@ -25,6 +26,7 @@ export interface MenuItem {
 	description: string;
 	imgSrc?: string;
 	imgAlt?: string;
+	slug: string;
 }
 
 export type NewMenuItem = Omit<MenuItem, 'id'>;
@@ -49,14 +51,14 @@ const initialState: MenuState = {
 // Helper function to handle image uploads
 async function uploadImageIfFile(
 	imageInput?: string | File,
-	name?: string,
+	slug?: string,
 ): Promise<string> {
 	if (!imageInput) return '';
 	if (typeof imageInput === 'string') return imageInput;
 
 	const storageRef = ref(
 		storage,
-		`menu-images/${Date.now()}_${name?.replace(' ', '_').toLowerCase()}`,
+		`menu-images/${Date.now()}_${slug?.replace(/ /g, '_').toLowerCase()}`,
 	);
 	const snapshot = await uploadBytes(storageRef, imageInput);
 	return await getDownloadURL(snapshot.ref);
@@ -90,16 +92,24 @@ export const addMenuItem = createAsyncThunk(
 	) => {
 		try {
 			const { imageFile, ...data } = payload;
-			let imgSrc = data.imgSrc || '';
-			let name = data.name;
-			if (imageFile) {
-				imgSrc = await uploadImageIfFile(imageFile, name);
+
+			// 1. Check if document exists FIRST to prevent orphan uploads
+			const docRef = doc(collection(db, 'menuItems'), data.slug);
+			const docSnap = await getDoc(docRef);
+			if (docSnap.exists()) {
+				return rejectWithValue(
+					`An item with slug '${data.slug}' already exists.`,
+				);
 			}
 
-			const docRef = await addDoc(collection(db, 'menuItems'), {
-				...data,
-				imgSrc,
-			});
+			// 2. Upload image only if document check passes
+			let imgSrc = data.imgSrc || '';
+			if (imageFile) {
+				imgSrc = await uploadImageIfFile(imageFile, data.slug);
+			}
+
+			// 3. Create document
+			await setDoc(docRef, { ...data, imgSrc });
 
 			return { id: docRef.id, ...data, imgSrc } as MenuItem;
 		} catch (err: any) {
@@ -112,22 +122,35 @@ export const updateMenuItem = createAsyncThunk(
 	'menu/updateMenuItem',
 	async (
 		payload: {
-			id: string;
+			id: string; // Current document ID / slug in Firestore
 			data: Partial<NewMenuItem>;
 			imageFile?: File;
-			oldImgSrc?: string; //  Pass the previous image URL here
+			oldImgSrc?: string;
 		},
 		{ rejectWithValue },
 	) => {
 		try {
-			const { id, data, imageFile, oldImgSrc } = payload;
-			let imgSrc = data.imgSrc || '';
-			let name = data.name;
-			if (imageFile) {
-				// 1. Upload the new image first
-				imgSrc = await uploadImageIfFile(imageFile, name);
+			const { id: oldSlug, data, imageFile, oldImgSrc } = payload;
 
-				// 2. Delete the old image from storage if it exists
+			const newSlug = data.slug || oldSlug;
+			const isSlugChanged = newSlug !== oldSlug;
+
+			// 1. If slug changed, verify target document ID doesn't already exist
+			if (isSlugChanged) {
+				const newDocRef = doc(db, 'menuItems', newSlug);
+				const newDocSnap = await getDoc(newDocRef);
+				if (newDocSnap.exists()) {
+					return rejectWithValue(
+						`An item with slug '${newSlug}' already exists.`,
+					);
+				}
+			}
+
+			// 2. Upload new image if provided and cleanup old image
+			let imgSrc = data.imgSrc || '';
+			if (imageFile) {
+				imgSrc = await uploadImageIfFile(imageFile, newSlug);
+
 				if (oldImgSrc && oldImgSrc.includes('firebasestorage')) {
 					try {
 						const oldStorageRef = ref(storage, oldImgSrc);
@@ -142,10 +165,29 @@ export const updateMenuItem = createAsyncThunk(
 			}
 
 			const updatedData = { ...data, ...(imgSrc ? { imgSrc } : {}) };
-			const docRef = doc(db, 'menuItems', id);
-			await updateDoc(docRef, updatedData);
 
-			return { id, ...updatedData };
+			// 3. Update or Move Document in Firestore
+			if (isSlugChanged) {
+				// Create new document with new slug ID
+				const newDocRef = doc(db, 'menuItems', newSlug);
+				await setDoc(newDocRef, { ...updatedData, slug: newSlug });
+
+				// Delete old document with old slug ID
+				const oldDocRef = doc(db, 'menuItems', oldSlug);
+				await deleteDoc(oldDocRef);
+
+				return {
+					id: newSlug,
+					oldId: oldSlug,
+					...updatedData,
+				};
+			} else {
+				// Standard update if slug did not change
+				const docRef = doc(db, 'menuItems', oldSlug);
+				await updateDoc(docRef, updatedData);
+
+				return { id: oldSlug, ...updatedData };
+			}
 		} catch (err: any) {
 			return rejectWithValue(err.message || 'Failed to update menu item');
 		}
@@ -156,13 +198,11 @@ export const deleteMenuItem = createAsyncThunk(
 	'menu/deleteMenuItem',
 	async (item: { id: string; imgSrc?: string }, { rejectWithValue }) => {
 		try {
-			// 1. Delete the image from Firebase Storage if it exists and is a Firebase URL
 			if (item.imgSrc && item.imgSrc.includes('firebasestorage')) {
 				try {
 					const storageRef = ref(storage, item.imgSrc);
 					await deleteObject(storageRef);
 				} catch (imageErr: any) {
-					// Log or handle image deletion errors (e.g., if image was already missing)
 					console.warn(
 						'Could not delete image from storage:',
 						imageErr.message,
@@ -170,7 +210,6 @@ export const deleteMenuItem = createAsyncThunk(
 				}
 			}
 
-			// 2. Delete the document from Firestore
 			await deleteDoc(doc(db, 'menuItems', item.id));
 
 			return item.id;
@@ -209,13 +248,20 @@ const menuSlice = createSlice({
 				state.items[action.payload.id] = action.payload;
 			})
 			.addCase(updateMenuItem.fulfilled, (state, action) => {
-				const updated = action.payload;
-				if (state.items[updated.id]) {
-					state.items[updated.id] = {
-						...state.items[updated.id],
-						...updated,
-					};
+				const { id, oldId, ...updated } = action.payload as MenuItem & {
+					oldId?: string;
+				};
+
+				// Clean up previous key from Redux state if slug was updated
+				if (oldId && oldId !== id) {
+					delete state.items[oldId];
 				}
+
+				state.items[id] = {
+					...state.items[id],
+					...updated,
+					id,
+				};
 			})
 			.addCase(deleteMenuItem.fulfilled, (state, action) => {
 				delete state.items[action.payload];

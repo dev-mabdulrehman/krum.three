@@ -1,15 +1,17 @@
 'use client';
 
 import Input from '@/components/admin/Input';
+import { slugify } from '@/lib/utils';
 import { MenuItem } from '@/store/slices/menuSlice';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
 	Award,
+	Banknote,
 	Cookie,
-	DollarSign,
 	FileText,
 	Image as ImageIcon,
 	Layers,
+	Link,
 	Scale,
 	Sparkles,
 	Upload,
@@ -29,6 +31,7 @@ export const menuSchema = z.object({
 	badge: z.string().optional(),
 	imgSrc: z.string().optional(),
 	imgAlt: z.string().optional(),
+	slug: z.string().min(1, 'Slug is required'),
 });
 
 export type MenuFormData = z.infer<typeof menuSchema>;
@@ -46,14 +49,18 @@ export function AddMenuItemForm({
 	const [previewUrl, setPreviewUrl] = useState<string>(
 		initialValues?.imgSrc || '',
 	);
+	const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
 
 	const {
 		register,
 		handleSubmit,
 		reset,
-		formState: { errors },
+		watch,
+		setValue,
+		formState: { errors, touchedFields, isSubmitted },
 	} = useForm<MenuFormData>({
 		resolver: zodResolver(menuSchema),
+		mode: 'onTouched',
 		defaultValues: {
 			name: '',
 			price: 0,
@@ -63,34 +70,64 @@ export function AddMenuItemForm({
 			badge: '',
 			imgSrc: '',
 			imgAlt: '',
+			slug: '',
 		},
 	});
 
+	const watchName = watch('name');
+
+	// Automatically update the slug whenever the name changes,
+	// unless the user has manually edited the slug field.
+	useEffect(() => {
+		if (!isSlugManuallyEdited) {
+			setValue('slug', slugify(watchName || ''), {
+				shouldValidate: true,
+			});
+		}
+	}, [watchName, isSlugManuallyEdited, setValue]);
+
 	useEffect(() => {
 		if (initialValues) {
-			reset({
-				name: initialValues.name,
-				price: initialValues.price,
-				weight: initialValues.weight,
-				description: initialValues.description,
-				stockStatus: initialValues.stockStatus,
-				badge: initialValues.badge || '',
-				imgSrc: initialValues.imgSrc || '',
-				imgAlt: initialValues.imgAlt || '',
-			});
+			reset(
+				{
+					name: initialValues.name,
+					price: initialValues.price,
+					weight: initialValues.weight,
+					description: initialValues.description,
+					stockStatus: initialValues.stockStatus,
+					badge: initialValues.badge || '',
+					imgSrc: initialValues.imgSrc || '',
+					imgAlt: initialValues.imgAlt || '',
+					slug:
+						initialValues.slug || slugify(initialValues.name || ''),
+				},
+				{
+					keepErrors: false,
+					keepTouched: false,
+				},
+			);
 			setPreviewUrl(initialValues.imgSrc || '');
+			setIsSlugManuallyEdited(true); // Preserve existing slug on edit
 		} else {
-			reset({
-				name: '',
-				price: 0,
-				weight: '',
-				description: '',
-				stockStatus: 'Fresh Today',
-				badge: '',
-				imgSrc: '',
-				imgAlt: '',
-			});
+			reset(
+				{
+					name: '',
+					price: 0,
+					weight: '',
+					description: '',
+					stockStatus: 'Fresh Today',
+					badge: '',
+					imgSrc: '',
+					imgAlt: '',
+					slug: '',
+				},
+				{
+					keepErrors: false,
+					keepTouched: false,
+				},
+			);
 			setPreviewUrl('');
+			setIsSlugManuallyEdited(false);
 		}
 		setSelectedFile(null);
 	}, [initialValues, reset]);
@@ -120,12 +157,28 @@ export function AddMenuItemForm({
 				{...register('name')}
 			/>
 
+			<Input
+				placeholder='Slug (e.g. very-velvet)'
+				icon={<Link size={18} />}
+				error={
+					touchedFields.slug || isSubmitted
+						? errors.slug?.message
+						: undefined
+				}
+				{...register('slug', {
+					onChange: e => {
+						setIsSlugManuallyEdited(true);
+						setValue('slug', slugify(e.target.value));
+					},
+				})}
+			/>
+
 			<div className='gap-3 grid grid-cols-1 sm:grid-cols-2'>
 				<Input
 					type='number'
 					step='0.01'
 					placeholder='Price (e.g. 350)'
-					icon={<DollarSign size={18} />}
+					icon={<Banknote size={18} />}
 					error={errors.price?.message}
 					{...register('price', { valueAsNumber: true })}
 				/>
