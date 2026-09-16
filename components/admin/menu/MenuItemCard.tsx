@@ -25,10 +25,11 @@ export function MenuItemCard({ item, onEdit, onDelete }: MenuItemCardProps) {
 			<div className='flex justify-between items-start gap-4 py-4'>
 				<div className='flex items-start gap-4'>
 					<div className='flex justify-center items-center bg-primary/10 mt-1 rounded w-12 h-12 overflow-hidden text-primary shrink-0'>
-						{item.imgSrc ? (
+						{Object.keys(item).includes('imgs') &&
+						item.imgs.length !== 0 ? (
 							<img
-								src={item.imgSrc}
-								alt={item.imgAlt || item.name}
+								src={item?.imgs[0]?.src || ''}
+								alt={item?.imgs[0]?.alt || item.name}
 								className='w-full h-full object-cover'
 							/>
 						) : (
@@ -81,7 +82,6 @@ export function MenuItemCard({ item, onEdit, onDelete }: MenuItemCardProps) {
 				</div>
 			</div>
 
-			{/* Confirmation Modal */}
 			<Modal
 				isOpen={showConfirm}
 				onClose={() => setShowConfirm(false)}

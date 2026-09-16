@@ -3,6 +3,7 @@
 import Button from '@/components/admin/Button';
 import {
 	AddMenuItemForm,
+	ImageUploadItem,
 	MenuFormData,
 } from '@/components/admin/menu/AddMenuItemForm';
 import { Modal } from '@/components/ui/Modal';
@@ -14,7 +15,10 @@ interface AddMenuItemModalProps {
 	isOpen: boolean;
 	initialValues?: MenuItem | null;
 	onClose: () => void;
-	onSubmit: (data: MenuFormData, imageFile?: File) => Promise<void> | void;
+	onSubmit: (
+		data: MenuFormData,
+		imageFiles?: ImageUploadItem[],
+	) => Promise<void> | void;
 }
 
 export function AddMenuItemModal({
@@ -26,10 +30,13 @@ export function AddMenuItemModal({
 	const isEditing = Boolean(initialValues);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
-	const handleFormSubmit = async (data: MenuFormData, imageFile?: File) => {
+	const handleFormSubmit = async (
+		data: MenuFormData,
+		imageFiles?: ImageUploadItem[],
+	) => {
 		try {
 			setIsSubmitting(true);
-			await onSubmit(data, imageFile);
+			await onSubmit(data, imageFiles);
 		} finally {
 			setIsSubmitting(false);
 		}

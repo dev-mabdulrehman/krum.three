@@ -1,3 +1,4 @@
+import { ImageUploadItem } from '@/components/admin/menu/AddMenuItemForm';
 import { db, storage } from '@/config/firebase';
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import {
@@ -24,6 +25,7 @@ export interface MenuItem {
 	weight: string;
 	stockStatus: string;
 	description: string;
+	imgs: Imgs[];
 	imgSrc?: string;
 	imgAlt?: string;
 	slug: string;
@@ -39,6 +41,11 @@ interface MenuState {
 	error: null | string;
 }
 
+export interface Imgs {
+	src: string;
+	alt: string;
+}
+
 const initialState: MenuState = {
 	bannerText:
 		'Morning Bake Out of Oven: 14 Fresh Boxes Remaining in Gujrat Studio Today',
@@ -52,13 +59,15 @@ const initialState: MenuState = {
 async function uploadImageIfFile(
 	imageInput?: string | File,
 	slug?: string,
+	id?: number,
+	subFolder?: string,
 ): Promise<string> {
 	if (!imageInput) return '';
 	if (typeof imageInput === 'string') return imageInput;
 
 	const storageRef = ref(
 		storage,
-		`menu-images/${Date.now()}_${slug?.replace(/ /g, '_').toLowerCase()}`,
+		`menu-images/${subFolder !== undefined ? `${subFolder}/` : ''}${Date.now()}_${slug?.replace(/ /g, '_').toLowerCase()}_${id?.toString()}`,
 	);
 	const snapshot = await uploadBytes(storageRef, imageInput);
 	return await getDownloadURL(snapshot.ref);
@@ -87,11 +96,11 @@ export const fetchMenuItems = createAsyncThunk(
 export const addMenuItem = createAsyncThunk(
 	'menu/addMenuItem',
 	async (
-		payload: NewMenuItem & { imageFile?: File },
+		payload: NewMenuItem & { imageFiles?: ImageUploadItem[] },
 		{ rejectWithValue },
 	) => {
 		try {
-			const { imageFile, ...data } = payload;
+			const { imageFiles, ...data } = payload;
 
 			// 1. Check if document exists FIRST to prevent orphan uploads
 			const docRef = doc(collection(db, 'menuItems'), data.slug);
@@ -101,17 +110,34 @@ export const addMenuItem = createAsyncThunk(
 					`An item with slug '${data.slug}' already exists.`,
 				);
 			}
-
+			let imgs: Imgs[] = [];
 			// 2. Upload image only if document check passes
 			let imgSrc = data.imgSrc || '';
-			if (imageFile) {
-				imgSrc = await uploadImageIfFile(imageFile, data.slug);
+			if (imageFiles && imageFiles.length !== 0) {
+				for (let index = 0; index < imageFiles.length; index++) {
+					let imgFile = imageFiles[index].imgFile;
+					imgSrc = await uploadImageIfFile(
+						imgFile,
+						data.slug,
+						index,
+						data.slug,
+					);
+					imgs.push({
+						src: imgSrc,
+						alt: imageFiles[index].imgAlt,
+					});
+				}
 			}
 
-			// 3. Create document
-			await setDoc(docRef, { ...data, imgSrc });
+			let firestoreDoc = {
+				...data,
+				imgs,
+			};
 
-			return { id: docRef.id, ...data, imgSrc } as MenuItem;
+			// 3. Create document
+			await setDoc(docRef, firestoreDoc);
+
+			return { id: docRef.id, ...firestoreDoc } as MenuItem;
 		} catch (err: any) {
 			return rejectWithValue(err.message || 'Failed to add menu item');
 		}
@@ -124,13 +150,13 @@ export const updateMenuItem = createAsyncThunk(
 		payload: {
 			id: string; // Current document ID / slug in Firestore
 			data: Partial<NewMenuItem>;
-			imageFile?: File;
+			imageFiles?: ImageUploadItem[];
 			oldImgSrc?: string;
 		},
 		{ rejectWithValue },
 	) => {
 		try {
-			const { id: oldSlug, data, imageFile, oldImgSrc } = payload;
+			const { id: oldSlug, data, oldImgSrc } = payload;
 
 			const newSlug = data.slug || oldSlug;
 			const isSlugChanged = newSlug !== oldSlug;
@@ -148,21 +174,21 @@ export const updateMenuItem = createAsyncThunk(
 
 			// 2. Upload new image if provided and cleanup old image
 			let imgSrc = data.imgSrc || '';
-			if (imageFile) {
-				imgSrc = await uploadImageIfFile(imageFile, newSlug);
+			// if (imageFile) {
+			// 	// imgSrc = await uploadImageIfFile(imageFile, newSlug);
 
-				if (oldImgSrc && oldImgSrc.includes('firebasestorage')) {
-					try {
-						const oldStorageRef = ref(storage, oldImgSrc);
-						await deleteObject(oldStorageRef);
-					} catch (imageErr: any) {
-						console.warn(
-							'Could not delete old image from storage:',
-							imageErr.message,
-						);
-					}
-				}
-			}
+			// 	if (oldImgSrc && oldImgSrc.includes('firebasestorage')) {
+			// 		try {
+			// 			const oldStorageRef = ref(storage, oldImgSrc);
+			// 			await deleteObject(oldStorageRef);
+			// 		} catch (imageErr: any) {
+			// 			console.warn(
+			// 				'Could not delete old image from storage:',
+			// 				imageErr.message,
+			// 			);
+			// 		}
+			// 	}
+			// }
 
 			const updatedData = { ...data, ...(imgSrc ? { imgSrc } : {}) };
 
@@ -196,11 +222,11 @@ export const updateMenuItem = createAsyncThunk(
 
 export const deleteMenuItem = createAsyncThunk(
 	'menu/deleteMenuItem',
-	async (item: { id: string; imgSrc?: string }, { rejectWithValue }) => {
+	async (item: { id: string; imgs: Imgs[] }, { rejectWithValue }) => {
 		try {
-			if (item.imgSrc && item.imgSrc.includes('firebasestorage')) {
+			for (let index = 0; index < item.imgs.length; index++) {
 				try {
-					const storageRef = ref(storage, item.imgSrc);
+					const storageRef = ref(storage, item.imgs[index].src);
 					await deleteObject(storageRef);
 				} catch (imageErr: any) {
 					console.warn(
@@ -209,7 +235,6 @@ export const deleteMenuItem = createAsyncThunk(
 					);
 				}
 			}
-
 			await deleteDoc(doc(db, 'menuItems', item.id));
 
 			return item.id;

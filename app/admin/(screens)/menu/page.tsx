@@ -1,6 +1,9 @@
 'use client';
 
-import { MenuFormData } from '@/components/admin/menu/AddMenuItemForm';
+import {
+	ImageUploadItem,
+	MenuFormData,
+} from '@/components/admin/menu/AddMenuItemForm';
 import { AddMenuItemModal } from '@/components/admin/menu/AddMenuItemModal';
 import { MenuItemList } from '@/components/admin/menu/MenuItemList';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
@@ -43,26 +46,28 @@ export default function MenuPage() {
 		setEditingItem(null);
 	};
 
-	const handleSubmit = async (data: MenuFormData, imageFile?: File) => {
+	const handleSubmit = async (
+		data: MenuFormData,
+		imageFiles?: ImageUploadItem[],
+	) => {
 		// Create dispatch action promise based on create/edit mode
 		const actionPromise = editingItem
 			? dispatch(
 					updateMenuItem({
 						id: editingItem.id,
 						data,
-						imageFile,
+						imageFiles,
 						oldImgSrc: editingItem.imgSrc,
 					}),
 				).unwrap()
 			: dispatch(
 					addMenuItem({
 						...data,
-						imageFile,
+						imgs: data.imgs ?? [],
+						imageFiles,
 					}),
 				).unwrap();
 
-		// 1. Keep modal open until promise resolves
-		// 2. Dynamic error text extracted from caught error
 		try {
 			await toast.promise(actionPromise, {
 				loading: 'Saving menu item...',

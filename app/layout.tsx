@@ -1,5 +1,3 @@
-import { Analytics } from '@vercel/analytics/next';
-import { SpeedInsights } from '@vercel/speed-insights/next';
 import type { Metadata } from 'next';
 import { Playfair_Display, Plus_Jakarta_Sans, Poppins } from 'next/font/google';
 import { Toaster } from 'react-hot-toast';
@@ -61,8 +59,8 @@ export default function RootLayout({
 			>
 				<StoreProvider>
 					<Toaster />
-					<Analytics />
-					<SpeedInsights />
+					{/* <Analytics /> */}
+					{/* <SpeedInsights /> */}
 					{children}
 				</StoreProvider>
 			</body>

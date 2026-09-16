@@ -1,6 +1,10 @@
 'use client';
 
 import Input from '@/components/admin/Input';
+import {
+	MultiImageUpload,
+	UploadedImageData,
+} from '@/components/MultiImageUpload';
 import { slugify } from '@/lib/utils';
 import { MenuItem } from '@/store/slices/menuSlice';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -9,16 +13,18 @@ import {
 	Banknote,
 	Cookie,
 	FileText,
-	Image as ImageIcon,
 	Layers,
 	Link,
 	Scale,
-	Sparkles,
-	Upload,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+
+export const imgSchema = z.object({
+	src: z.string().min(1, 'Image source URL is required'),
+	alt: z.string().min(1, 'Image alt text is required'),
+});
 
 export const menuSchema = z.object({
 	name: z.string().min(1, 'Name is required'),
@@ -29,8 +35,7 @@ export const menuSchema = z.object({
 	description: z.string().min(1, 'Description is required'),
 	stockStatus: z.string().min(1, 'Stock status is required'),
 	badge: z.string().optional(),
-	imgSrc: z.string().optional(),
-	imgAlt: z.string().optional(),
+	imgs: z.array(imgSchema).optional(),
 	slug: z.string().min(1, 'Slug is required'),
 });
 
@@ -38,17 +43,24 @@ export type MenuFormData = z.infer<typeof menuSchema>;
 
 interface AddMenuItemFormProps {
 	initialValues?: MenuItem | null;
-	onSubmit: (data: MenuFormData, imageFile?: File) => Promise<void> | void;
+	// Updated to accept array of image files & cover image index
+	onSubmit: (
+		data: MenuFormData,
+		imageFiles: ImageUploadItem[],
+		coverIndex: number,
+	) => Promise<void> | void;
+}
+export interface ImageUploadItem {
+	imgFile: File;
+	imgAlt: string;
 }
 
 export function AddMenuItemForm({
 	initialValues,
 	onSubmit,
 }: AddMenuItemFormProps) {
-	const [selectedFile, setSelectedFile] = useState<File | null>(null);
-	const [previewUrl, setPreviewUrl] = useState<string>(
-		initialValues?.imgSrc || '',
-	);
+	const [imageFiles, setImageFiles] = useState<ImageUploadItem[]>([]);
+	const [coverIndex, setCoverIndex] = useState<number>(0);
 	const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
 
 	const {
@@ -68,16 +80,14 @@ export function AddMenuItemForm({
 			description: '',
 			stockStatus: 'Fresh Today',
 			badge: '',
-			imgSrc: '',
-			imgAlt: '',
+			imgs: [],
 			slug: '',
 		},
 	});
 
 	const watchName = watch('name');
 
-	// Automatically update the slug whenever the name changes,
-	// unless the user has manually edited the slug field.
+	// Automatically update slug unless manually edited
 	useEffect(() => {
 		if (!isSlugManuallyEdited) {
 			setValue('slug', slugify(watchName || ''), {
@@ -96,8 +106,6 @@ export function AddMenuItemForm({
 					description: initialValues.description,
 					stockStatus: initialValues.stockStatus,
 					badge: initialValues.badge || '',
-					imgSrc: initialValues.imgSrc || '',
-					imgAlt: initialValues.imgAlt || '',
 					slug:
 						initialValues.slug || slugify(initialValues.name || ''),
 				},
@@ -106,8 +114,7 @@ export function AddMenuItemForm({
 					keepTouched: false,
 				},
 			);
-			setPreviewUrl(initialValues.imgSrc || '');
-			setIsSlugManuallyEdited(true); // Preserve existing slug on edit
+			setIsSlugManuallyEdited(true);
 		} else {
 			reset(
 				{
@@ -117,8 +124,6 @@ export function AddMenuItemForm({
 					description: '',
 					stockStatus: 'Fresh Today',
 					badge: '',
-					imgSrc: '',
-					imgAlt: '',
 					slug: '',
 				},
 				{
@@ -126,22 +131,25 @@ export function AddMenuItemForm({
 					keepTouched: false,
 				},
 			);
-			setPreviewUrl('');
 			setIsSlugManuallyEdited(false);
 		}
-		setSelectedFile(null);
+		setImageFiles([]);
+		setCoverIndex(0);
 	}, [initialValues, reset]);
 
-	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		const file = e.target.files?.[0];
-		if (file) {
-			setSelectedFile(file);
-			setPreviewUrl(URL.createObjectURL(file));
-		}
+	const handleImagesChange = (
+		imagesData: UploadedImageData[],
+		coverIndex: number,
+	) => {
+		const imagePayload = imagesData.map(item => ({
+			imgFile: item.file,
+			imgAlt: item.alt,
+		}));
+		setImageFiles(imagePayload);
 	};
 
 	const handleFormSubmit = async (data: MenuFormData) => {
-		await onSubmit(data, selectedFile || undefined);
+		await onSubmit(data, imageFiles, coverIndex);
 	};
 
 	return (
@@ -215,7 +223,7 @@ export function AddMenuItemForm({
 					</span>
 					<textarea
 						rows={3}
-						placeholder='Description (e.g. 70% Valrhona dark chocolate...)'
+						placeholder='Description'
 						className='p-2 pl-9 border-none rounded outline-none w-full text-sm resize-none'
 						{...register('description')}
 					/>
@@ -227,43 +235,7 @@ export function AddMenuItemForm({
 				)}
 			</div>
 
-			{/* File Upload / Image Picker */}
-			<div className='space-y-2'>
-				<label className='block font-semibold text-gray-600 text-xs'>
-					Item Image
-				</label>
-				<div className='flex items-center gap-4'>
-					{previewUrl ? (
-						<div className='relative border rounded w-16 h-16 overflow-hidden shrink-0'>
-							<img
-								src={previewUrl}
-								alt='Preview'
-								className='w-full h-full object-cover'
-							/>
-						</div>
-					) : (
-						<div className='flex justify-center items-center bg-gray-100 border rounded w-16 h-16 text-gray-400 shrink-0'>
-							<ImageIcon size={24} />
-						</div>
-					)}
-					<label className='flex items-center gap-2 bg-gray-50 hover:bg-gray-100 px-3 py-2 border rounded font-semibold text-gray-700 text-xs transition cursor-pointer'>
-						<Upload size={16} /> Choose File
-						<input
-							type='file'
-							accept='image/*'
-							className='hidden'
-							onChange={handleFileChange}
-						/>
-					</label>
-				</div>
-			</div>
-
-			<Input
-				placeholder='Image Alt Text (imgAlt)'
-				icon={<Sparkles size={18} />}
-				error={errors.imgAlt?.message}
-				{...register('imgAlt')}
-			/>
+			<MultiImageUpload onChange={handleImagesChange} />
 		</form>
 	);
 }
