@@ -1,4 +1,3 @@
-import CartDrawer from '@/components/CartDrawer';
 import HeroSection from '@/components/home/HeroSection';
 import { OrderProcessSection } from '@/components/home/OrderProcessSection';
 import SignaturesMenu from '@/components/home/SignaturesMenu';
@@ -9,7 +8,6 @@ export default function HomePage() {
 		<main className='flex flex-col min-h-screen'>
 			<HeroSection />
 			<SignaturesMenu />
-			<CartDrawer />
 			<OrderProcessSection />
 			<Footer />
 		</main>

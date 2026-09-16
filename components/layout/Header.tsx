@@ -39,7 +39,7 @@ export default function Header() {
 						<Link
 							aria-current='page'
 							className='bg-primary-container px-space-sm py-space-xs rounded-xl font-bold text-on-primary transition-colors'
-							href='#'
+							href='/'
 						>
 							Home
 						</Link>

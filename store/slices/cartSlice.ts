@@ -9,12 +9,45 @@ interface CartState {
 	boxSlots: (BoxSlot | null)[];
 }
 
+const LOCAL_STORAGE_KEY = 'shopping_cart_state';
+
+// Helper to safely load state from localStorage (SSR safe)
+const loadSavedState = (): Partial<CartState> | null => {
+	if (typeof window === 'undefined') return null;
+	try {
+		const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+		return saved ? JSON.parse(saved) : null;
+	} catch {
+		return null;
+	}
+};
+
+// Helper to save state to localStorage
+const saveState = (state: CartState) => {
+	if (typeof window === 'undefined') return;
+	try {
+		localStorage.setItem(
+			LOCAL_STORAGE_KEY,
+			JSON.stringify({
+				items: state.items,
+				deliveryType: state.deliveryType,
+				deliveryFee: state.deliveryFee,
+				boxSlots: state.boxSlots,
+			}),
+		);
+	} catch (e) {
+		console.error('Failed to save cart state to localStorage', e);
+	}
+};
+
+const savedState = loadSavedState();
+
 const initialState: CartState = {
 	isOpen: false,
-	items: [],
-	deliveryType: 'dispatch',
-	deliveryFee: 150,
-	boxSlots: [null, null, null, null],
+	items: savedState?.items || [],
+	deliveryType: savedState?.deliveryType || 'dispatch',
+	deliveryFee: savedState?.deliveryFee ?? 150,
+	boxSlots: savedState?.boxSlots || [null, null, null, null],
 };
 
 const cartSlice = createSlice({
@@ -54,6 +87,7 @@ const cartSlice = createSlice({
 				});
 			}
 			state.isOpen = true;
+			saveState(state);
 		},
 		updateQty(
 			state,
@@ -70,22 +104,27 @@ const cartSlice = createSlice({
 					);
 				}
 			}
+			saveState(state);
 		},
 		setDeliveryType(state, action: PayloadAction<'dispatch' | 'pickup'>) {
 			state.deliveryType = action.payload;
 			state.deliveryFee = action.payload === 'dispatch' ? 150 : 0;
+			saveState(state);
 		},
 		addSlotToBox(state, action: PayloadAction<BoxSlot>) {
 			const emptyIdx = state.boxSlots.findIndex(slot => slot === null);
 			if (emptyIdx !== -1) {
 				state.boxSlots[emptyIdx] = action.payload;
 			}
+			saveState(state);
 		},
 		clearBoxSlot(state, action: PayloadAction<number>) {
 			state.boxSlots[action.payload] = null;
+			saveState(state);
 		},
 		resetBoxSlots(state) {
 			state.boxSlots = [null, null, null, null];
+			saveState(state);
 		},
 	},
 });
