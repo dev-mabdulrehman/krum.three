@@ -3,8 +3,7 @@
 import Input from '@/components/admin/Input';
 import { MultiImageUpload } from '@/components/MultiImageUpload';
 import { slugify } from '@/lib/utils';
-import { MenuItem } from '@/store/slices/menuSlice';
-import { MixedImageData } from '@/types';
+import { MenuItem, MixedImageData } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
 	Award,

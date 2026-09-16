@@ -2,7 +2,7 @@
 
 import Button from '@/components/admin/Button';
 import FormHeader from '@/components/admin/FormHeader';
-import { MenuItem } from '@/store/slices/menuSlice';
+import { MenuItem } from '@/types';
 import { Plus } from 'lucide-react';
 import { MenuItemCard, MenuItemCardSkeleton } from './MenuItemCard';
 

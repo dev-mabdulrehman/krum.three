@@ -2,7 +2,7 @@
 
 import Button from '@/components/admin/Button';
 import { Modal } from '@/components/ui/Modal';
-import { MenuItem } from '@/store/slices/menuSlice';
+import { MenuItem } from '@/types';
 import { Cookie, Edit2, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 

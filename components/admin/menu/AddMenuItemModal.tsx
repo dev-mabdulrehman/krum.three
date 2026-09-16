@@ -6,8 +6,7 @@ import {
 	MenuFormData,
 } from '@/components/admin/menu/AddMenuItemForm';
 import { Modal } from '@/components/ui/Modal';
-import { MenuItem } from '@/store/slices/menuSlice';
-import { MixedImageData } from '@/types';
+import { MenuItem, MixedImageData } from '@/types';
 import { Loader2, Plus, Save } from 'lucide-react';
 import { useState } from 'react';
 
