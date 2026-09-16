@@ -1,35 +1,30 @@
 'use client';
 
-import {
-	ImageUploadItem,
-	MenuFormData,
-} from '@/components/admin/menu/AddMenuItemForm';
+import { MenuFormData } from '@/components/admin/menu/AddMenuItemForm';
 import { AddMenuItemModal } from '@/components/admin/menu/AddMenuItemModal';
 import { MenuItemList } from '@/components/admin/menu/MenuItemList';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { useFirestoreSubscription } from '@/hooks/useFirestoreSubscription';
+import { useAppDispatch } from '@/store/hooks';
 import {
 	addMenuItem,
 	deleteMenuItem,
-	fetchMenuItems,
-	MenuItem,
 	updateMenuItem,
 } from '@/store/slices/menuSlice';
-import { useEffect, useState } from 'react';
+import { MenuItem, MixedImageData } from '@/types';
+import { useState } from 'react';
 import toast from 'react-hot-toast';
 
 export default function MenuPage() {
 	const dispatch = useAppDispatch();
-	const { items: itemsMap, loading: itemsLoading } = useAppSelector(
-		state => state.menu,
-	);
-	const menuItems = Object.values(itemsMap);
+	const {
+		loading: menuItemsLoading,
+		data: menuItemsData,
+		error: menuItemsError,
+	} = useFirestoreSubscription<MenuItem>('menuItems', []);
+	const menuItems = Object.values(menuItemsData);
 
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
-
-	useEffect(() => {
-		dispatch(fetchMenuItems());
-	}, [dispatch]);
 
 	const handleOpenAddModal = () => {
 		setEditingItem(null);
@@ -48,30 +43,40 @@ export default function MenuPage() {
 
 	const handleSubmit = async (
 		data: MenuFormData,
-		imageFiles?: ImageUploadItem[],
+		imagesData: MixedImageData[],
+		coverIndex: number = 0,
 	) => {
-		// Create dispatch action promise based on create/edit mode
+		// Determine action based on edit vs. create mode
 		const actionPromise = editingItem
 			? dispatch(
 					updateMenuItem({
 						id: editingItem.id,
 						data,
-						imageFiles,
-						oldImgSrc: editingItem.imgSrc,
+						imagesData,
+						coverIndex,
+						// Pass old images so async thunk can delete removed assets from Firebase Storage
+						oldImgs: editingItem.imgs ?? [],
 					}),
 				).unwrap()
 			: dispatch(
 					addMenuItem({
-						...data,
-						imgs: data.imgs ?? [],
-						imageFiles,
+						data,
+						imagesData,
+						coverIndex,
 					}),
 				).unwrap();
+		const voidActionPromise: Promise<void> = actionPromise.then(
+			() => undefined,
+		);
 
 		try {
-			await toast.promise(actionPromise, {
-				loading: 'Saving menu item...',
-				success: 'Menu item saved successfully!',
+			await toast.promise(voidActionPromise, {
+				loading: editingItem
+					? 'Updating menu item...'
+					: 'Saving menu item...',
+				success: editingItem
+					? 'Menu item updated successfully!'
+					: 'Menu item created successfully!',
 				error: err =>
 					typeof err === 'string'
 						? err
@@ -81,8 +86,8 @@ export default function MenuPage() {
 			// Close modal ONLY on success
 			handleCloseModal();
 		} catch (err) {
-			// Modal stays open when promise rejects, allowing user to retry or fix inputs
-			console.error('Menu save error:', err);
+			// Modal stays open on error so the user can fix errors or retry
+			console.error('Menu submit error:', err);
 		}
 	};
 
@@ -105,7 +110,7 @@ export default function MenuPage() {
 		<div className='space-y-6 mx-auto max-w-5xl'>
 			<MenuItemList
 				items={menuItems}
-				loading={itemsLoading}
+				loading={menuItemsLoading}
 				onEditItem={handleOpenEditModal}
 				onDeleteItem={handleDeleteItem}
 				onOpenModal={handleOpenAddModal}

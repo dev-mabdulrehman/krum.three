@@ -7,6 +7,7 @@ import {
 	updateQty,
 } from '@/store/slices/cartSlice';
 import { ShoppingBag, X } from 'lucide-react';
+import Image from 'next/image';
 
 export default function CartDrawer() {
 	const dispatch = useAppDispatch();
@@ -62,12 +63,12 @@ export default function CartDrawer() {
 						>
 							<div className='flex items-center gap-3'>
 								<div className='relative rounded-lg w-12 h-12 overflow-hidden'>
-									{/* <Image
+									<Image
 										src={item.img}
 										alt={item.name}
 										fill
 										className='object-cover'
-									/> */}
+									/>
 								</div>
 								<div>
 									<span className='font-title-md font-semibold text-on-surface text-title-md line-clamp-1'>

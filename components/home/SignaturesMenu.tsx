@@ -1,18 +1,17 @@
 'use client';
 
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { fetchMenuItems } from '@/store/slices/menuSlice';
-import { useEffect } from 'react';
+import { useFirestoreSubscription } from '@/hooks/useFirestoreSubscription';
+import { useAppDispatch } from '@/store/hooks';
 import MenuItemCard, { MenuItemCardSkeleton } from './MenuItemCard';
 
 export default function SignaturesMenu() {
 	const dispatch = useAppDispatch();
-	const { items, loading, error } = useAppSelector(state => state.menu);
-	const cookieList = Object.values(items);
-
-	useEffect(() => {
-		dispatch(fetchMenuItems());
-	}, [dispatch]);
+	const {
+		data: menuItems,
+		loading,
+		error,
+	} = useFirestoreSubscription('menuItems', []);
+	const cookieList = Object.values(menuItems);
 
 	return (
 		<section
@@ -48,11 +47,11 @@ export default function SignaturesMenu() {
 								<MenuItemCardSkeleton key={i} />
 							))
 						: cookieList.map((cookie: any) => (
-								<MenuItemCard item={cookie} />
+								<MenuItemCard key={cookie.slug} item={cookie} />
 							))}
 				</div>
 				<div className='font-body-md font-bold text-lg text-center'>
-					{!loading && Object.keys(items).length == 0
+					{!loading && Object.keys(cookieList).length == 0
 						? 'No menu items yet!'
 						: ''}
 				</div>

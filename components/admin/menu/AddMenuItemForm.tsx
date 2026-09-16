@@ -1,12 +1,10 @@
 'use client';
 
 import Input from '@/components/admin/Input';
-import {
-	MultiImageUpload,
-	UploadedImageData,
-} from '@/components/MultiImageUpload';
+import { MultiImageUpload } from '@/components/MultiImageUpload';
 import { slugify } from '@/lib/utils';
 import { MenuItem } from '@/store/slices/menuSlice';
+import { MixedImageData } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
 	Award,
@@ -43,23 +41,18 @@ export type MenuFormData = z.infer<typeof menuSchema>;
 
 interface AddMenuItemFormProps {
 	initialValues?: MenuItem | null;
-	// Updated to accept array of image files & cover image index
 	onSubmit: (
 		data: MenuFormData,
-		imageFiles: ImageUploadItem[],
+		imagesData: MixedImageData[],
 		coverIndex: number,
 	) => Promise<void> | void;
-}
-export interface ImageUploadItem {
-	imgFile: File;
-	imgAlt: string;
 }
 
 export function AddMenuItemForm({
 	initialValues,
 	onSubmit,
 }: AddMenuItemFormProps) {
-	const [imageFiles, setImageFiles] = useState<ImageUploadItem[]>([]);
+	const [imagesData, setImagesData] = useState<MixedImageData[]>([]);
 	const [coverIndex, setCoverIndex] = useState<number>(0);
 	const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
 
@@ -87,7 +80,7 @@ export function AddMenuItemForm({
 
 	const watchName = watch('name');
 
-	// Automatically update slug unless manually edited
+	// Auto-update slug unless manually edited
 	useEffect(() => {
 		if (!isSlugManuallyEdited) {
 			setValue('slug', slugify(watchName || ''), {
@@ -108,11 +101,9 @@ export function AddMenuItemForm({
 					badge: initialValues.badge || '',
 					slug:
 						initialValues.slug || slugify(initialValues.name || ''),
+					imgs: initialValues.imgs || [],
 				},
-				{
-					keepErrors: false,
-					keepTouched: false,
-				},
+				{ keepErrors: false, keepTouched: false },
 			);
 			setIsSlugManuallyEdited(true);
 		} else {
@@ -125,31 +116,24 @@ export function AddMenuItemForm({
 					stockStatus: 'Fresh Today',
 					badge: '',
 					slug: '',
+					imgs: [],
 				},
-				{
-					keepErrors: false,
-					keepTouched: false,
-				},
+				{ keepErrors: false, keepTouched: false },
 			);
 			setIsSlugManuallyEdited(false);
 		}
-		setImageFiles([]);
-		setCoverIndex(0);
 	}, [initialValues, reset]);
 
 	const handleImagesChange = (
-		imagesData: UploadedImageData[],
-		coverIndex: number,
+		updatedImages: MixedImageData[],
+		updatedCoverIndex: number,
 	) => {
-		const imagePayload = imagesData.map(item => ({
-			imgFile: item.file,
-			imgAlt: item.alt,
-		}));
-		setImageFiles(imagePayload);
+		setImagesData(updatedImages);
+		setCoverIndex(updatedCoverIndex);
 	};
 
 	const handleFormSubmit = async (data: MenuFormData) => {
-		await onSubmit(data, imageFiles, coverIndex);
+		await onSubmit(data, imagesData, coverIndex);
 	};
 
 	return (
@@ -215,7 +199,6 @@ export function AddMenuItemForm({
 				/>
 			</div>
 
-			{/* Description Input */}
 			<div className='flex flex-col gap-1 w-full'>
 				<div className='relative flex items-start border border-black/10 rounded'>
 					<span className='top-3 left-2.5 absolute flex justify-center items-center w-5 h-5 text-gray-500 pointer-events-none'>
@@ -235,7 +218,10 @@ export function AddMenuItemForm({
 				)}
 			</div>
 
-			<MultiImageUpload onChange={handleImagesChange} />
+			<MultiImageUpload
+				images={initialValues?.imgs || []}
+				onChange={handleImagesChange}
+			/>
 		</form>
 	);
 }

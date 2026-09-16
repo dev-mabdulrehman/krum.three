@@ -24,7 +24,7 @@ export function MenuItemList({
 	return (
 		<div className='space-y-6 bg-white shadow-md p-6 sm:p-8 border border-black/10 rounded'>
 			<div className='flex sm:flex-row flex-col justify-between sm:items-center gap-4'>
-				<FormHeader>Active Menu Items</FormHeader>
+				<FormHeader>Menu Items</FormHeader>
 				<Button
 					type='button'
 					onClick={onOpenModal}

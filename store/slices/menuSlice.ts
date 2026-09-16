@@ -1,5 +1,7 @@
-import { ImageUploadItem } from '@/components/admin/menu/AddMenuItemForm';
+import { MenuFormData } from '@/components/admin/menu/AddMenuItemForm';
 import { db, storage } from '@/config/firebase';
+import { uploadImageIfFile } from '@/lib/utils';
+import { Imgs, MenuItem, MixedImageData } from '@/types';
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import {
 	collection,
@@ -10,26 +12,7 @@ import {
 	setDoc,
 	updateDoc,
 } from 'firebase/firestore';
-import {
-	deleteObject,
-	getDownloadURL,
-	ref,
-	uploadBytes,
-} from 'firebase/storage';
-
-export interface MenuItem {
-	id: string;
-	name: string;
-	price: number;
-	badge?: string;
-	weight: string;
-	stockStatus: string;
-	description: string;
-	imgs: Imgs[];
-	imgSrc?: string;
-	imgAlt?: string;
-	slug: string;
-}
+import { deleteObject, ref } from 'firebase/storage';
 
 export type NewMenuItem = Omit<MenuItem, 'id'>;
 
@@ -41,11 +24,6 @@ interface MenuState {
 	error: null | string;
 }
 
-export interface Imgs {
-	src: string;
-	alt: string;
-}
-
 const initialState: MenuState = {
 	bannerText:
 		'Morning Bake Out of Oven: 14 Fresh Boxes Remaining in Gujrat Studio Today',
@@ -54,24 +32,6 @@ const initialState: MenuState = {
 	loading: true,
 	error: null,
 };
-
-// Helper function to handle image uploads
-async function uploadImageIfFile(
-	imageInput?: string | File,
-	slug?: string,
-	id?: number,
-	subFolder?: string,
-): Promise<string> {
-	if (!imageInput) return '';
-	if (typeof imageInput === 'string') return imageInput;
-
-	const storageRef = ref(
-		storage,
-		`menu-images/${subFolder !== undefined ? `${subFolder}/` : ''}${Date.now()}_${slug?.replace(/ /g, '_').toLowerCase()}_${id?.toString()}`,
-	);
-	const snapshot = await uploadBytes(storageRef, imageInput);
-	return await getDownloadURL(snapshot.ref);
-}
 
 export const fetchMenuItems = createAsyncThunk(
 	'menu/fetchMenuItems',
@@ -93,14 +53,17 @@ export const fetchMenuItems = createAsyncThunk(
 	},
 );
 
+export interface AddMenuItemPayload {
+	data: MenuFormData;
+	imagesData: MixedImageData[];
+	coverIndex: number;
+}
+
 export const addMenuItem = createAsyncThunk(
 	'menu/addMenuItem',
-	async (
-		payload: NewMenuItem & { imageFiles?: ImageUploadItem[] },
-		{ rejectWithValue },
-	) => {
+	async (payload: AddMenuItemPayload, { rejectWithValue }) => {
 		try {
-			const { imageFiles, ...data } = payload;
+			const { imagesData, data, coverIndex } = payload;
 
 			// 1. Check if document exists FIRST to prevent orphan uploads
 			const docRef = doc(collection(db, 'menuItems'), data.slug);
@@ -110,26 +73,35 @@ export const addMenuItem = createAsyncThunk(
 					`An item with slug '${data.slug}' already exists.`,
 				);
 			}
+
 			let imgs: Imgs[] = [];
-			// 2. Upload image only if document check passes
-			let imgSrc = data.imgSrc || '';
-			if (imageFiles && imageFiles.length !== 0) {
-				for (let index = 0; index < imageFiles.length; index++) {
-					let imgFile = imageFiles[index].imgFile;
-					imgSrc = await uploadImageIfFile(
-						imgFile,
-						data.slug,
-						index,
-						data.slug,
-					);
+
+			// 2. Upload images
+			if (imagesData && imagesData.length !== 0) {
+				for (let index = 0; index < imagesData.length; index++) {
+					const item = imagesData[index];
+					let imgSrc = '';
+
+					if (item.file) {
+						imgSrc = await uploadImageIfFile(item.file, data.slug);
+					} else if (item.previewUrl) {
+						imgSrc = item.previewUrl;
+					}
+
 					imgs.push({
 						src: imgSrc,
-						alt: imageFiles[index].imgAlt,
+						alt: item.alt,
 					});
+				}
+
+				// Move cover image to index 0
+				if (coverIndex > 0 && coverIndex < imgs.length) {
+					const cover = imgs.splice(coverIndex, 1)[0];
+					imgs.unshift(cover);
 				}
 			}
 
-			let firestoreDoc = {
+			const firestoreDoc = {
 				...data,
 				imgs,
 			};
@@ -144,24 +116,32 @@ export const addMenuItem = createAsyncThunk(
 	},
 );
 
+export interface UpdateMenuItemPayload {
+	id: string; // Existing item ID/slug
+	data: Partial<NewMenuItem>;
+	imagesData: MixedImageData[];
+	coverIndex: number;
+	oldImgs?: Imgs[];
+}
+
 export const updateMenuItem = createAsyncThunk(
 	'menu/updateMenuItem',
-	async (
-		payload: {
-			id: string; // Current document ID / slug in Firestore
-			data: Partial<NewMenuItem>;
-			imageFiles?: ImageUploadItem[];
-			oldImgSrc?: string;
-		},
-		{ rejectWithValue },
-	) => {
-		try {
-			const { id: oldSlug, data, oldImgSrc } = payload;
+	async (payload: UpdateMenuItemPayload, { rejectWithValue }) => {
+		// Track newly uploaded URLs to perform cleanup if an error occurs mid-process
+		const newlyUploadedSrcs: string[] = [];
 
+		try {
+			const {
+				id: oldSlug,
+				data,
+				imagesData,
+				coverIndex,
+				oldImgs = [],
+			} = payload;
 			const newSlug = data.slug || oldSlug;
 			const isSlugChanged = newSlug !== oldSlug;
 
-			// 1. If slug changed, verify target document ID doesn't already exist
+			// 1. Check if new slug conflicts with an existing item
 			if (isSlugChanged) {
 				const newDocRef = doc(db, 'menuItems', newSlug);
 				const newDocSnap = await getDoc(newDocRef);
@@ -172,49 +152,96 @@ export const updateMenuItem = createAsyncThunk(
 				}
 			}
 
-			// 2. Upload new image if provided and cleanup old image
-			let imgSrc = data.imgSrc || '';
-			// if (imageFile) {
-			// 	// imgSrc = await uploadImageIfFile(imageFile, newSlug);
+			// 2. Process image array (upload new files, retain existing URLs)
+			const processedImages: Imgs[] = [];
 
-			// 	if (oldImgSrc && oldImgSrc.includes('firebasestorage')) {
-			// 		try {
-			// 			const oldStorageRef = ref(storage, oldImgSrc);
-			// 			await deleteObject(oldStorageRef);
-			// 		} catch (imageErr: any) {
-			// 			console.warn(
-			// 				'Could not delete old image from storage:',
-			// 				imageErr.message,
-			// 			);
-			// 		}
-			// 	}
-			// }
+			for (let index = 0; index < imagesData.length; index++) {
+				const item = imagesData[index];
+				let imgSrc = '';
 
-			const updatedData = { ...data, ...(imgSrc ? { imgSrc } : {}) };
+				if (item.isExisting) {
+					imgSrc = item.previewUrl;
+				} else if (item.file) {
+					// This will throw if the file already exists in Firebase Storage
+					imgSrc = await uploadImageIfFile(item.file, newSlug);
+					newlyUploadedSrcs.push(imgSrc);
+				}
 
-			// 3. Update or Move Document in Firestore
+				if (imgSrc) {
+					processedImages.push({
+						src: imgSrc,
+						alt: item.alt || '',
+					});
+				}
+			}
+
+			// 3. Rearrange cover image to index 0
+			if (coverIndex > 0 && coverIndex < processedImages.length) {
+				const cover = processedImages.splice(coverIndex, 1)[0];
+				processedImages.unshift(cover);
+			}
+
+			// 4. Delete removed images from Storage
+			const remainingSrcs = new Set(processedImages.map(img => img.src));
+			const removedImgs = oldImgs.filter(
+				img => !remainingSrcs.has(img.src),
+			);
+
+			for (const img of removedImgs) {
+				if (img.src && img.src.includes('firebasestorage')) {
+					try {
+						const storageRef = ref(storage, img.src);
+						await deleteObject(storageRef);
+					} catch (imageErr: any) {
+						console.warn(
+							'Could not delete removed image from storage:',
+							imageErr.message,
+						);
+					}
+				}
+			}
+
+			const updatedDocData = {
+				...data,
+				imgs: processedImages,
+			};
+
+			// 5. Update or migrate document in Firestore
 			if (isSlugChanged) {
-				// Create new document with new slug ID
 				const newDocRef = doc(db, 'menuItems', newSlug);
-				await setDoc(newDocRef, { ...updatedData, slug: newSlug });
+				await setDoc(newDocRef, { ...updatedDocData, slug: newSlug });
 
-				// Delete old document with old slug ID
 				const oldDocRef = doc(db, 'menuItems', oldSlug);
 				await deleteDoc(oldDocRef);
 
 				return {
 					id: newSlug,
 					oldId: oldSlug,
-					...updatedData,
+					...updatedDocData,
 				};
 			} else {
-				// Standard update if slug did not change
 				const docRef = doc(db, 'menuItems', oldSlug);
-				await updateDoc(docRef, updatedData);
+				await updateDoc(docRef, updatedDocData);
 
-				return { id: oldSlug, ...updatedData };
+				return {
+					id: oldSlug,
+					...updatedDocData,
+				};
 			}
 		} catch (err: any) {
+			// Roll back any files that were successfully uploaded before the error occurred
+			for (const src of newlyUploadedSrcs) {
+				try {
+					const storageRef = ref(storage, src);
+					await deleteObject(storageRef);
+				} catch (cleanupErr) {
+					console.warn(
+						'Failed to clean up uploaded file after error:',
+						cleanupErr,
+					);
+				}
+			}
+
 			return rejectWithValue(err.message || 'Failed to update menu item');
 		}
 	},
@@ -251,6 +278,9 @@ const menuSlice = createSlice({
 		setFilter(state, action: PayloadAction<string>) {
 			state.activeFilter = action.payload;
 		},
+		setMenuItems(state, action: PayloadAction<Record<string, MenuItem>>) {
+			state.items = action.payload;
+		},
 		updateBannerText(state, action: PayloadAction<string>) {
 			state.bannerText = action.payload;
 		},
@@ -277,7 +307,6 @@ const menuSlice = createSlice({
 					oldId?: string;
 				};
 
-				// Clean up previous key from Redux state if slug was updated
 				if (oldId && oldId !== id) {
 					delete state.items[oldId];
 				}
@@ -286,7 +315,7 @@ const menuSlice = createSlice({
 					...state.items[id],
 					...updated,
 					id,
-				};
+				} as MenuItem;
 			})
 			.addCase(deleteMenuItem.fulfilled, (state, action) => {
 				delete state.items[action.payload];

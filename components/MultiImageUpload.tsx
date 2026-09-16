@@ -1,49 +1,81 @@
-import {
-	AlertCircle,
-	FileText,
-	Image as ImageIcon,
-	Star,
-	Upload,
-	X,
-} from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+'use client';
 
-export interface UploadedImageData {
-	file: File;
-	previewUrl: string;
-	alt: string;
-}
-
-interface MultiImageUploadProps {
-	images?: string[];
-	onChange?: (imagesData: UploadedImageData[], coverIndex: number) => void;
-	maxImgs?: number;
-	maxImgSize?: number;
-}
+import { MixedImageData, MultiImageUploadProps } from '@/types';
+import { AlertCircle, Image as ImageIcon, Star, Upload, X } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
 
 export const MultiImageUpload = ({
+	images = [],
 	onChange,
 	maxImgs = 4,
 	maxImgSize = 1,
 }: MultiImageUploadProps) => {
-	const [imagesData, setImagesData] = useState<UploadedImageData[]>([]);
+	const [imagesData, setImagesData] = useState<MixedImageData[]>([]);
 	const [coverIndex, setCoverIndex] = useState<number>(0);
 	const [errorMsg, setErrorMsg] = useState<string | null>(null);
-	const [editingAltIndex, setEditingAltIndex] = useState<number | null>(null);
 
-	// Clean up Object URLs when component unmounts
+	// Keep track of parent onChange without triggering effects
+	const onChangeRef = useRef(onChange);
+	useEffect(() => {
+		onChangeRef.current = onChange;
+	}, [onChange]);
+
+	// Keep track of images state in ref to clean up ObjectURLs on unmount
+	const imagesDataRef = useRef(imagesData);
+	useEffect(() => {
+		imagesDataRef.current = imagesData;
+	}, [imagesData]);
+
+	// Sync helper: Updates local state and notifies parent directly
+	const updateAndNotify = (
+		newImagesData: MixedImageData[],
+		newCoverIndex: number,
+	) => {
+		setImagesData(newImagesData);
+		setCoverIndex(newCoverIndex);
+		if (onChangeRef.current) {
+			onChangeRef.current(newImagesData, newCoverIndex);
+		}
+	};
+
+	// Initialize state with existing remote images when incoming images prop actually changes
+	const prevImagesJsonRef = useRef<string>('');
+	useEffect(() => {
+		const currentImagesJson = JSON.stringify(images);
+		if (prevImagesJsonRef.current === currentImagesJson) return;
+		prevImagesJsonRef.current = currentImagesJson;
+
+		if (images.length > 0) {
+			const initialList: MixedImageData[] = images.map((img, index) => ({
+				id: `existing-${index}-${img.src}`,
+				previewUrl: img.src,
+				alt: img.alt || '',
+				isExisting: true,
+			}));
+			setImagesData(initialList);
+			setCoverIndex(0);
+			if (onChangeRef.current) {
+				onChangeRef.current(initialList, 0);
+			}
+		} else {
+			setImagesData([]);
+			setCoverIndex(0);
+			if (onChangeRef.current) {
+				onChangeRef.current([], 0);
+			}
+		}
+	}, [images]);
+
+	// Cleanup Blob Object URLs ONLY on unmount
 	useEffect(() => {
 		return () => {
-			imagesData.forEach(item => URL.revokeObjectURL(item.previewUrl));
+			imagesDataRef.current.forEach(item => {
+				if (!item.isExisting && item.previewUrl) {
+					URL.revokeObjectURL(item.previewUrl);
+				}
+			});
 		};
 	}, []);
-
-	// Notify parent component on any update to images data or cover selection
-	useEffect(() => {
-		if (onChange) {
-			onChange(imagesData, coverIndex);
-		}
-	}, [imagesData, coverIndex]);
 
 	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		setErrorMsg(null);
@@ -69,6 +101,7 @@ export const MultiImageUpload = ({
 
 			const isDuplicate = imagesData.some(
 				existing =>
+					existing.file &&
 					existing.file.name === file.name &&
 					existing.file.size === file.size &&
 					existing.file.lastModified === file.lastModified,
@@ -103,41 +136,50 @@ export const MultiImageUpload = ({
 			return;
 		}
 
-		const newItems: UploadedImageData[] = allowedFiles.map(file => ({
+		const newItems: MixedImageData[] = allowedFiles.map(file => ({
+			id: `new-${Date.now()}-${file.name}`,
 			file,
 			previewUrl: URL.createObjectURL(file),
-			alt: file.name.split('.')[0] || '', // Default alt text to raw file name
+			alt: file.name.split('.')[0] || '',
+			isExisting: false,
 		}));
 
-		setImagesData(prev => [...prev, ...newItems]);
+		const updatedList = [...imagesData, ...newItems];
+		updateAndNotify(updatedList, coverIndex);
 		e.target.value = '';
 	};
 
 	const handleRemoveImage = (indexToRemove: number) => {
 		setErrorMsg(null);
-		URL.revokeObjectURL(imagesData[indexToRemove].previewUrl);
+		const target = imagesData[indexToRemove];
 
-		setImagesData(prev =>
-			prev.filter((_, index) => index !== indexToRemove),
+		if (!target.isExisting && target.previewUrl) {
+			URL.revokeObjectURL(target.previewUrl);
+		}
+
+		const updatedList = imagesData.filter(
+			(_, index) => index !== indexToRemove,
 		);
 
-		setCoverIndex(prevCover => {
-			if (indexToRemove === prevCover) return 0;
-			if (indexToRemove < prevCover) return prevCover - 1;
-			return prevCover;
-		});
-
-		if (editingAltIndex === indexToRemove) {
-			setEditingAltIndex(null);
+		let newCoverIndex = coverIndex;
+		if (indexToRemove === coverIndex) {
+			newCoverIndex = 0;
+		} else if (indexToRemove < coverIndex) {
+			newCoverIndex = coverIndex - 1;
 		}
+
+		updateAndNotify(updatedList, newCoverIndex);
 	};
 
 	const handleAltChange = (index: number, newAlt: string) => {
-		setImagesData(prev =>
-			prev.map((item, i) =>
-				i === index ? { ...item, alt: newAlt } : item,
-			),
+		const updatedList = imagesData.map((item, i) =>
+			i === index ? { ...item, alt: newAlt } : item,
 		);
+		updateAndNotify(updatedList, coverIndex);
+	};
+
+	const handleSetCover = (index: number) => {
+		updateAndNotify(imagesData, index);
 	};
 
 	const isMaxReached = imagesData.length >= maxImgs;
@@ -150,7 +192,7 @@ export const MultiImageUpload = ({
 				</label>
 				{imagesData.length > 0 && (
 					<span className='text-[10px] text-gray-400'>
-						Star = default image | File icon = edit alt text
+						Star = default image | Edit alt text below
 					</span>
 				)}
 			</div>
@@ -161,7 +203,7 @@ export const MultiImageUpload = ({
 
 					return (
 						<div
-							key={index}
+							key={item.id}
 							className={`group relative border rounded w-16 h-16 overflow-hidden shrink-0 transition-all ${
 								isCover
 									? 'ring-2 ring-blue-500 border-transparent'
@@ -177,7 +219,7 @@ export const MultiImageUpload = ({
 							{/* Set as Cover / Default Button */}
 							<button
 								type='button'
-								onClick={() => setCoverIndex(index)}
+								onClick={() => handleSetCover(index)}
 								title={
 									isCover ? 'Default Image' : 'Set as default'
 								}
@@ -191,16 +233,6 @@ export const MultiImageUpload = ({
 									size={10}
 									fill={isCover ? 'currentColor' : 'none'}
 								/>
-							</button>
-
-							{/* Edit Alt Text Button */}
-							<button
-								type='button'
-								onClick={() => setEditingAltIndex(index)}
-								title='Edit Alt Text'
-								className='bottom-1 left-1 absolute bg-black/60 hover:bg-blue-600 opacity-0 group-hover:opacity-100 p-1 rounded-full text-white transition'
-							>
-								<FileText size={10} />
 							</button>
 
 							{/* Delete Image Button */}
@@ -246,12 +278,12 @@ export const MultiImageUpload = ({
 				</label>
 			</div>
 
-			{/* In-place List for Individual Alt Text Inputs */}
+			{/* Alt Text Controls */}
 			{imagesData.length > 0 && (
 				<div className='space-y-2 pt-2 border-gray-100 border-t'>
 					{imagesData.map((item, index) => (
 						<div
-							key={index}
+							key={item.id}
 							className='flex items-center gap-2 bg-gray-50 p-2 border border-gray-200 rounded'
 						>
 							<img
@@ -275,7 +307,7 @@ export const MultiImageUpload = ({
 				</div>
 			)}
 
-			{/* Error / Limit Warning Message */}
+			{/* Error Message */}
 			{errorMsg && (
 				<div className='flex items-center gap-1.5 text-red-500 text-xs'>
 					<AlertCircle size={14} />

@@ -3,11 +3,11 @@
 import Button from '@/components/admin/Button';
 import {
 	AddMenuItemForm,
-	ImageUploadItem,
 	MenuFormData,
 } from '@/components/admin/menu/AddMenuItemForm';
 import { Modal } from '@/components/ui/Modal';
 import { MenuItem } from '@/store/slices/menuSlice';
+import { MixedImageData } from '@/types';
 import { Loader2, Plus, Save } from 'lucide-react';
 import { useState } from 'react';
 
@@ -17,7 +17,8 @@ interface AddMenuItemModalProps {
 	onClose: () => void;
 	onSubmit: (
 		data: MenuFormData,
-		imageFiles?: ImageUploadItem[],
+		imagesData: MixedImageData[],
+		coverIndex: number,
 	) => Promise<void> | void;
 }
 
@@ -32,11 +33,12 @@ export function AddMenuItemModal({
 
 	const handleFormSubmit = async (
 		data: MenuFormData,
-		imageFiles?: ImageUploadItem[],
+		imagesData: MixedImageData[],
+		coverIndex: number,
 	) => {
 		try {
 			setIsSubmitting(true);
-			await onSubmit(data, imageFiles);
+			await onSubmit(data, imagesData, coverIndex);
 		} finally {
 			setIsSubmitting(false);
 		}

@@ -6,7 +6,7 @@ import { MenuItem } from '@/types';
 import { Minus, Plus, ShoppingBag } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState } from 'react';
+import { MouseEvent, useState } from 'react';
 import Stars from '../Stars';
 
 interface MenuItemCardProps {
@@ -17,22 +17,28 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
 	const dispatch = useAppDispatch();
 	const [quantity, setQuantity] = useState<number>(1);
 
-	const handleDecrement = () => {
+	const handleDecrement = (e: MouseEvent<HTMLButtonElement>) => {
+		e.preventDefault();
+		e.stopPropagation();
 		setQuantity(prev => (prev > 1 ? prev - 1 : 1));
 	};
 
-	const handleIncrement = () => {
+	const handleIncrement = (e: MouseEvent<HTMLButtonElement>) => {
+		e.preventDefault();
+		e.stopPropagation();
 		setQuantity(prev => prev + 1);
 	};
 
-	const handleAddToCart = () => {
+	const handleAddToCart = (e: MouseEvent<HTMLButtonElement>) => {
+		e.preventDefault();
+		e.stopPropagation();
 		console.log(item.price);
 		dispatch(
 			addToCart({
 				id: item.id,
 				name: item.name,
 				price: Number(item.price.toString().replaceAll('PKR', '')),
-				img: item.imgSrc,
+				img: item.imgs[0]?.src || '',
 				qty: quantity,
 			}),
 		);
@@ -48,13 +54,17 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
 			<div>
 				{/* Card Image Container */}
 				<div className='relative bg-surface-container shadow-inner mb-space-sm rounded-xl w-full aspect-square overflow-hidden'>
-					<Image
-						alt={item.imgAlt}
-						className='w-full h-full object-cover group-hover:scale-105 transition-transform duration-500'
-						src={item.imgSrc}
-						fill
-						sizes='(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw'
-					/>
+					{item?.imgs[0]?.src ? (
+						<Image
+							alt={item.imgs[0]?.alt || item.name}
+							className='w-full h-full object-cover group-hover:scale-105 transition-transform duration-500'
+							src={item.imgs[0]?.src}
+							fill
+							sizes='(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw'
+						/>
+					) : (
+						<div className='w-full h-full object-cover group-hover:scale-105 transition-transform duration-500'></div>
+					)}
 					{/* Badges Overlay */}
 					<div className='top-3 left-3 z-10 absolute flex flex-wrap gap-1'>
 						{item.badge && (
@@ -81,7 +91,7 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
 				{/* Content Section */}
 				<div className='flex flex-col gap-space-2xs'>
 					<div className='flex justify-between items-baseline gap-space-xs'>
-						<h3 className='font-headline-sm text-headline-sm text-primary leading-tight'>
+						<h3 className='font-headline-sm font-semibold text-headline-sm text-primary leading-tight'>
 							{item.name}
 						</h3>
 					</div>
