@@ -40,6 +40,7 @@ export interface MenuItem {
 	description: string;
 	imgs: Imgs[];
 	slug: string;
+	productRating?: ProductRating;
 }
 
 export interface MultiImageUploadProps {
@@ -47,4 +48,19 @@ export interface MultiImageUploadProps {
 	onChange?: (imagesData: MixedImageData[], coverIndex: number) => void;
 	maxImgs?: number;
 	maxImgSize?: number;
+}
+
+export interface ReviewItem {
+	id: string;
+	author: string;
+	rating: number;
+	date: string;
+	comment: string;
+	images?: string[];
+	likes?: number;
+}
+export interface ProductRating {
+	averageRating: number;
+	totalReviews: number;
+	individualReviews: ReviewItem[];
 }

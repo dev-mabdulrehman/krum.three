@@ -2,6 +2,7 @@ import '@/app/globals.css';
 import CartDrawer from '@/components/CartDrawer';
 import Header from '@/components/layout/Header';
 import TopNotificationBar from '@/components/layout/TopNotificationBar';
+import ScrollToTop from '@/components/ScrollToTop';
 
 export default function RootLayout({
 	children,
@@ -10,12 +11,13 @@ export default function RootLayout({
 }) {
 	return (
 		<>
+			<ScrollToTop />
 			<div className='top-0 z-30 sticky'>
 				<TopNotificationBar />
 				<Header />
-				<CartDrawer />
 			</div>
-			{children}
+			<main>{children}</main>
+			<CartDrawer />
 		</>
 	);
 }

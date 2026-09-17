@@ -1,8 +1,10 @@
 'use client';
 
-import { ImagePlus, Star, X } from 'lucide-react';
+import { ImagePlus, Star, User, X } from 'lucide-react';
 import Image from 'next/image';
 import { ChangeEvent, FormEvent, useState } from 'react';
+import toast from 'react-hot-toast'; // Adjust toast import path if using a custom wrapper
+import Input from '../admin/Input';
 
 interface AddReviewModalProps {
 	isOpen: boolean;
@@ -12,13 +14,15 @@ interface AddReviewModalProps {
 		comment: string;
 		name: string;
 		images: File[];
-	}) => void;
+	}) => Promise<void> | void;
+	isSubmitting?: boolean;
 }
 
 export default function AddReviewModal({
 	isOpen,
 	onClose,
 	onSubmit,
+	isSubmitting = false,
 }: AddReviewModalProps) {
 	const [rating, setRating] = useState<number>(5);
 	const [hoverRating, setHoverRating] = useState<number>(0);
@@ -29,14 +33,30 @@ export default function AddReviewModal({
 
 	if (!isOpen) return null;
 
+	const resetForm = () => {
+		// Revoke preview object URLs to prevent memory leaks
+		imagePreviews.forEach(url => URL.revokeObjectURL(url));
+
+		setName('');
+		setComment('');
+		setRating(5);
+		setImages([]);
+		setImagePreviews([]);
+	};
+
+	const handleClose = () => {
+		if (isSubmitting) return;
+		resetForm();
+		onClose();
+	};
+
 	const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
 		if (!e.target.files) return;
 
 		const files = Array.from(e.target.files);
-		const newImages = [...images, ...files].slice(0, 4); // Max 4 images
+		const newImages = [...images, ...files].slice(0, 4);
 		setImages(newImages);
 
-		// Generate object URLs for immediate preview
 		const newPreviews = newImages.map(file => URL.createObjectURL(file));
 		setImagePreviews(newPreviews);
 	};
@@ -45,26 +65,35 @@ export default function AddReviewModal({
 		const updatedImages = images.filter((_, i) => i !== index);
 		const updatedPreviews = imagePreviews.filter((_, i) => i !== index);
 
-		// Revoke memory for removed preview URL
 		URL.revokeObjectURL(imagePreviews[index]);
 
 		setImages(updatedImages);
 		setImagePreviews(updatedPreviews);
 	};
 
-	const handleSubmit = (e: FormEvent) => {
+	const handleSubmit = async (e: FormEvent) => {
 		e.preventDefault();
-		if (!comment.trim() || !name.trim()) return;
 
-		onSubmit({ rating, comment, name, images });
+		if (!name.trim()) {
+			toast.error('Please enter your name');
+			return;
+		}
 
-		// Reset state & close
-		setName('');
-		setComment('');
-		setRating(5);
-		setImages([]);
-		setImagePreviews([]);
-		onClose();
+		if (!comment.trim()) {
+			toast.error('Please write a review comment');
+			return;
+		}
+
+		if (isSubmitting) return;
+
+		try {
+			await onSubmit({ rating, comment, name, images });
+			toast.success('Review submitted successfully!');
+			resetForm();
+		} catch (error) {
+			console.error('Failed to submit review:', error);
+			toast.error('Failed to submit review. Please try again.');
+		}
 	};
 
 	return (
@@ -77,8 +106,9 @@ export default function AddReviewModal({
 					</h3>
 					<button
 						type='button'
-						onClick={onClose}
-						className='hover:bg-surface-variant p-1 rounded-full text-on-surface-variant transition-colors'
+						onClick={handleClose}
+						className='hover:bg-surface-variant disabled:opacity-50 p-1 rounded-full text-on-surface-variant transition-colors'
+						disabled={isSubmitting}
 					>
 						<X size={20} />
 					</button>
@@ -91,7 +121,7 @@ export default function AddReviewModal({
 					{/* Star Rating Select */}
 					<div>
 						<label className='block mb-1 font-semibold text-on-surface-variant text-xs uppercase tracking-wider'>
-							Your Rating
+							Your Rating <span className='text-red-500'>*</span>
 						</label>
 						<div className='flex items-center gap-1'>
 							{[1, 2, 3, 4, 5].map(star => (
@@ -101,7 +131,8 @@ export default function AddReviewModal({
 									onClick={() => setRating(star)}
 									onMouseEnter={() => setHoverRating(star)}
 									onMouseLeave={() => setHoverRating(0)}
-									className='p-1 focus:outline-none text-amber-400'
+									className='disabled:opacity-50 p-1 focus:outline-none text-amber-400'
+									disabled={isSubmitting}
 								>
 									<Star
 										size={26}
@@ -116,33 +147,36 @@ export default function AddReviewModal({
 						</div>
 					</div>
 
-					{/* Name Input */}
-					<div>
-						<label className='block mb-1 font-semibold text-on-surface-variant text-xs uppercase tracking-wider'>
-							Your Name
-						</label>
-						<input
-							type='text'
-							required
-							value={name}
-							onChange={e => setName(e.target.value)}
-							placeholder='e.g., Sarah M.'
-							className='bg-surface-container-low px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/40 w-full text-on-surface'
-						/>
-					</div>
+					{/* Custom Input for Name */}
+					<Input
+						label='Your Name'
+						name='name'
+						type='text'
+						required
+						value={name}
+						onChange={e => setName(e.target.value)}
+						placeholder='e.g., Sarah M.'
+						icon={<User size={18} />}
+						disabled={isSubmitting}
+					/>
 
 					{/* Review Text Area */}
 					<div>
-						<label className='block mb-1 font-semibold text-on-surface-variant text-xs uppercase tracking-wider'>
-							Review
+						<label
+							htmlFor='comment'
+							className='block mb-1 font-semibold text-on-surface-variant text-xs uppercase tracking-wider'
+						>
+							Review <span className='text-red-500'>*</span>
 						</label>
 						<textarea
+							id='comment'
 							rows={3}
 							required
 							value={comment}
 							onChange={e => setComment(e.target.value)}
 							placeholder='What did you like or dislike about this product?'
-							className='bg-surface-container-low px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/40 w-full text-on-surface'
+							disabled={isSubmitting}
+							className='bg-surface-container-low disabled:opacity-50 px-4 py-2.5 border border-black/10 focus:border-black/40 rounded-xl outline-none w-full text-on-surface text-sm transition-colors'
 						/>
 					</div>
 
@@ -166,7 +200,8 @@ export default function AddReviewModal({
 									<button
 										type='button'
 										onClick={() => handleRemoveImage(index)}
-										className='top-1 right-1 absolute bg-black/60 hover:bg-black p-0.5 rounded-full text-white'
+										disabled={isSubmitting}
+										className='top-1 right-1 absolute bg-black/60 hover:bg-black disabled:opacity-50 p-0.5 rounded-full text-white'
 									>
 										<X size={12} />
 									</button>
@@ -174,13 +209,16 @@ export default function AddReviewModal({
 							))}
 
 							{imagePreviews.length < 4 && (
-								<label className='flex flex-col justify-center items-center border-2 border-surface-variant hover:border-primary border-dashed rounded-xl w-16 h-16 text-on-surface-variant transition-colors cursor-pointer'>
+								<label
+									className={`flex flex-col justify-center items-center border-2 border-surface-variant hover:border-primary border-dashed rounded-xl w-16 h-16 text-on-surface-variant transition-colors ${isSubmitting ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+								>
 									<ImagePlus size={20} />
 									<input
 										type='file'
 										accept='image/*'
 										multiple
 										onChange={handleImageChange}
+										disabled={isSubmitting}
 										className='hidden'
 									/>
 								</label>
@@ -191,9 +229,10 @@ export default function AddReviewModal({
 					{/* Submit Button */}
 					<button
 						type='submit'
-						className='bg-primary hover:bg-primary-container mt-2 py-3 rounded-xl font-bold text-on-primary transition-colors'
+						disabled={isSubmitting}
+						className='bg-primary hover:bg-primary-container disabled:opacity-50 mt-2 py-3 rounded-xl font-bold text-on-primary transition-colors'
 					>
-						Submit Review
+						{isSubmitting ? 'Submitting...' : 'Submit Review'}
 					</button>
 				</form>
 			</div>

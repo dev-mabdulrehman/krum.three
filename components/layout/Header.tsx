@@ -19,7 +19,7 @@ export default function Header() {
 			<div className='bg-primary text-on-primary'>
 				<div className='flex justify-between items-center gap-space-md mx-auto px-margin-mobile lg:px-gutter-desktop h-20 max-w-max-content-width'>
 					<div className='flex items-center gap-space-md'>
-						<Link className='flex flex-col' href='#'>
+						<Link className='flex flex-col' href='/'>
 							<Image
 								alt='Krum³ Artisanal Confectionery Logo'
 								className='w-auto h-12 object-contain'
