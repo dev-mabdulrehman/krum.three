@@ -55,6 +55,7 @@ export default function RootLayout({
 	return (
 		<html lang='en' className='scroll-smooth'>
 			<body
+				suppressHydrationWarning
 				className={`${poppins.className} ${playfair.variable} ${jakarta.variable} bg-cream selection:bg-forest text-forest-dark selection:text-white antialiased`}
 			>
 				<StoreProvider>

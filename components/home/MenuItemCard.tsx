@@ -56,13 +56,13 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
 		>
 			<div>
 				{/* 3D Flip Container */}
-				<div className='relative bg-surface-container shadow-inner mb-space-sm rounded-xl w-full aspect-square overflow-hidden [perspective:1000px]'>
+				<div className='relative bg-surface-container shadow-inner mb-space-sm rounded-xl w-full aspect-square overflow-hidden perspective-[1000px]'>
 					{/* Inner Rotating Wrapper */}
 					<div
-						className={`relative w-full h-full duration-700 [transform-style:preserve-3d] transition-transform ${hasMultipleImages ? 'group-hover:[transform:rotateY(180deg)]' : ''}`}
+						className={`relative w-full h-full duration-700 transform-3d transition-transform ${hasMultipleImages ? 'group-hover:transform-[rotateY(180deg)]' : ''}`}
 					>
 						{/* Front Image */}
-						<div className='absolute inset-0 w-full h-full [backface-visibility:hidden]'>
+						<div className='absolute inset-0 w-full h-full backface-hidden'>
 							{firstImg?.src ? (
 								<Image
 									alt={firstImg.alt || item.name}
@@ -78,7 +78,7 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
 
 						{/* Back Image (Shown on Hover) */}
 						{hasMultipleImages && (
-							<div className='absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)]'>
+							<div className='absolute inset-0 w-full h-full transform-[rotateY(180deg)] backface-hidden'>
 								<Image
 									alt={secondImg?.alt || item.name}
 									className='w-full h-full object-cover'
@@ -193,7 +193,7 @@ export function MenuItemCardSkeleton() {
 			</div>
 
 			<div className='flex items-center gap-3 mt-5 px-1'>
-				<div className='flex items-center bg-gray-200/60 p-1 rounded-2xl w-[120px] h-12'>
+				<div className='flex items-center bg-gray-200/60 p-1 rounded-2xl w-30 h-12'>
 					<div className='bg-white rounded-xl w-9 h-9' />
 					<div className='flex-1 bg-gray-300/60 mx-auto rounded w-4 h-5' />
 					<div className='bg-white rounded-xl w-9 h-9' />

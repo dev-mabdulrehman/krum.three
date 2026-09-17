@@ -1,11 +1,9 @@
 'use client';
 
 import { useFirestoreSubscription } from '@/hooks/useFirestoreSubscription';
-import { useAppDispatch } from '@/store/hooks';
 import MenuItemCard, { MenuItemCardSkeleton } from './MenuItemCard';
 
 export default function SignaturesMenu() {
-	const dispatch = useAppDispatch();
 	const {
 		data: menuItems,
 		loading,
