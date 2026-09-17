@@ -1,4 +1,5 @@
 import { storage } from '@/config/firebase';
+import { Timestamp } from 'firebase/firestore';
 import {
 	getDownloadURL,
 	getMetadata,
@@ -26,21 +27,47 @@ export async function uploadImageIfFile(
 	const fileName = imageInput.name;
 	const storagePath = `menu/${slug !== undefined ? `${slug}/product/` : ''}${fileName}`;
 	const storageRef = ref(storage, storagePath);
-
-	// Check if the file already exists in Firebase Storage
 	try {
 		await getMetadata(storageRef);
-		// If getMetadata succeeds, the file exists
 		throw new Error(
 			`File '${fileName}' already exists in storage for this menu item.`,
 		);
 	} catch (error: any) {
-		// If the error code is 'storage/object-not-found', the file doesn't exist and we can proceed
 		if (error.code !== 'storage/object-not-found') {
-			throw error; // Re-throw duplicate file error or network/auth errors
+			throw error;
 		}
 	}
 
 	const snapshot = await uploadBytes(storageRef, imageInput);
 	return await getDownloadURL(snapshot.ref);
+}
+
+export function serializeData<T>(data: any): T {
+	if (!data) return data;
+
+	if (data instanceof Timestamp) {
+		return data.toDate().toISOString() as any;
+	}
+
+	if (
+		typeof data === 'object' &&
+		typeof data.seconds === 'number' &&
+		typeof data.nanoseconds === 'number'
+	) {
+		return new Date(data.seconds * 1000).toISOString() as any;
+	}
+
+	if (Array.isArray(data)) {
+		return data.map(serializeData) as any;
+	}
+
+	if (typeof data === 'object') {
+		const serialized: Record<string, any> = {};
+		for (const key of Object.keys(data)) {
+			serialized[key] = serializeData(data[key]);
+		}
+		return serialized as T;
+	}
+
+	return data;
 }

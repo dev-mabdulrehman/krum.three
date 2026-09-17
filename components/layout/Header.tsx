@@ -6,10 +6,18 @@ import { toggleCart } from '@/store/slices/cartSlice';
 import { ShoppingBag, User } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 export default function Header() {
 	const dispatch = useAppDispatch();
 	const cartItems = useAppSelector(state => state.cart.items);
+
+	// Prevent hydration mismatch by waiting for client-side mount
+	const [mounted, setMounted] = useState(false);
+
+	useEffect(() => {
+		setMounted(true);
+	}, []);
 
 	const totalCount = cartItems.reduce((acc, item) => acc + item.qty, 0);
 
@@ -67,7 +75,7 @@ export default function Header() {
 							type='button'
 						>
 							<ShoppingBag className='w-5 h-5 text-on-primary' />
-							{totalCount > 0 && (
+							{mounted && totalCount > 0 && (
 								<span className='-top-1 -right-1 absolute flex justify-center items-center bg-secondary rounded-full w-5 h-5 font-label-sm font-bold text-label-sm text-on-secondary'>
 									{totalCount}
 								</span>

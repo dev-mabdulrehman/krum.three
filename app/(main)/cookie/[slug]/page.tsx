@@ -1,5 +1,6 @@
 import CookieClient from '@/components/cookies/CookieClient';
 import { db } from '@/config/firebase';
+import { serializeData } from '@/lib/utils';
 import { MenuItem, ProductRating, ReviewItem } from '@/types';
 import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
 import { Metadata } from 'next';
@@ -18,7 +19,6 @@ async function getItemWithReviewsBySlug(
 		const docRef = doc(db, 'menuItems', slug);
 		const docSnap = await getDoc(docRef);
 
-		// Guard clause: Return early if item doesn't exist
 		if (!docSnap.exists()) {
 			return null;
 		}
@@ -26,17 +26,14 @@ async function getItemWithReviewsBySlug(
 		const reviewsRef = collection(db, 'menuItems', slug, 'reviews');
 		const reviewsSnap = await getDocs(reviewsRef);
 
-		const reviews: ReviewItem[] = reviewsSnap.docs.map(
-			reviewDoc =>
-				({
-					id: reviewDoc.id,
-					...reviewDoc.data(),
-				}) as ReviewItem,
-		);
+		const reviews: ReviewItem[] = reviewsSnap.docs.map(reviewDoc => {
+			const rawData = reviewDoc.data();
+			return serializeData<ReviewItem>({
+				id: reviewDoc.id,
+				...rawData,
+			});
+		});
 
-		console.log('Fetched reviews:', reviews);
-
-		// Calculate average rating safely
 		const totalReviews = reviews.length;
 		const averageRating =
 			totalReviews > 0
@@ -55,7 +52,6 @@ async function getItemWithReviewsBySlug(
 			totalReviews,
 			individualReviews: reviews,
 		};
-		console.log(reviews);
 
 		return {
 			id: docSnap.id,
