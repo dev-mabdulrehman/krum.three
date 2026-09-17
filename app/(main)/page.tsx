@@ -1,7 +1,7 @@
 import HeroSection from '@/components/home/HeroSection';
 import { OrderProcessSection } from '@/components/home/OrderProcessSection';
 import SignaturesMenu from '@/components/home/SignaturesMenu';
-import InstagramWidget from '@/components/InstaGallery';
+import InstagramWidget from '@/components/InstagramGallery';
 import Footer from '@/components/layout/Footer';
 
 export default function HomePage() {

@@ -2,7 +2,7 @@
 
 import { Play, X } from 'lucide-react';
 import { useState } from 'react';
-import { BeholdPost } from './InstaGallery';
+import { BeholdPost } from './InstagramGallery';
 
 interface InstagramCardProps {
 	post: BeholdPost;
@@ -29,14 +29,13 @@ export default function InstagramCard({ post }: InstagramCardProps) {
 
 	return (
 		<>
-			{/* Gallery Card */}
 			<a
 				href={post.permalink}
 				onClick={handleCardClick}
 				className='group relative flex flex-col bg-surface-container-low p-2 border border-surface-variant/30 hover:border-primary/50 rounded-xl overflow-hidden transition-all duration-300 cursor-pointer'
 			>
 				{/* 4:5 Aspect Ratio Container */}
-				<div className='relative bg-surface-container rounded-lg w-full aspect-[4/5] overflow-hidden'>
+				<div className='relative bg-surface-container rounded-lg w-full aspect-4/5 overflow-hidden'>
 					{isVideo ? (
 						<>
 							<video
@@ -93,7 +92,7 @@ export default function InstagramCard({ post }: InstagramCardProps) {
 						</button>
 
 						{/* Modal Media Display (4:5 Aspect Ratio) */}
-						<div className='relative bg-black w-full aspect-[4/5]'>
+						<div className='relative bg-black w-full aspect-4/5'>
 							{isVideo ? (
 								<video
 									src={post.mediaUrl}
@@ -131,5 +130,20 @@ export default function InstagramCard({ post }: InstagramCardProps) {
 				</div>
 			)}
 		</>
+	);
+}
+
+export function InstagramSkeleton() {
+	return (
+		<div className='flex flex-col bg-surface-container-low p-2 border border-surface-variant/30 rounded-xl overflow-hidden animate-pulse'>
+			{/* 4:5 Media Aspect Ratio Placeholder */}
+			<div className='bg-surface-variant/40 rounded-lg w-full aspect-4/5' />
+
+			{/* Caption Text Placeholders */}
+			<div className='space-y-1.5 mt-3 px-1'>
+				<div className='bg-surface-variant/40 rounded-sm w-full h-3' />
+				<div className='bg-surface-variant/40 rounded-sm w-2/3 h-3' />
+			</div>
+		</div>
 	);
 }
