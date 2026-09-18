@@ -3,7 +3,9 @@ import { NextResponse, type NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
 	const { pathname } = request.nextUrl;
 
-	const authToken = request.cookies.get('admin_session')?.value;
+	const authToken = request.cookies.get(
+		process.env.ADMIN_SESSION_COOKIE_NAME || 'krum_three_admin_session',
+	)?.value;
 	console.log('Auth Token:', authToken);
 
 	const isAdminRoute = pathname.startsWith('/admin');

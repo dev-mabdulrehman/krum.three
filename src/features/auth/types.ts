@@ -6,6 +6,16 @@ import {
 import z from 'zod';
 import { loginSchema } from './schema';
 
+export type FormState = {
+	success?: boolean;
+	error?: string;
+};
+
+export type ForgotPasswordFormState = {
+	success?: boolean;
+	message?: string;
+	error?: string;
+};
 export interface AuthUser {
 	id: string;
 	email: string;

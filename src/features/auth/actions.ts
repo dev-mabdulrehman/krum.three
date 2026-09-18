@@ -8,19 +8,12 @@ import {
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
+import { loginSchema } from './schema';
+import { ForgotPasswordFormState, FormState } from './types';
 
-const loginSchema = z.object({
-	email: z
-		.string()
-		.min(1, 'Email is required')
-		.email('Invalid email address'),
-	password: z.string().min(6, 'Password must be at least 6 characters'),
-});
+const SESSION_COOKIE_NAME =
+	process.env.ADMIN_SESSION_COOKIE_NAME || 'krum_three_admin_session';
 
-export type FormState = {
-	success?: boolean;
-	error?: string;
-};
 
 export async function loginAction(
 	prevState: FormState | null,
@@ -58,7 +51,7 @@ export async function loginAction(
 
 		// 3. Store token in HTTP-only cookie
 		const cookieStore = await cookies();
-		cookieStore.set('admin_session', idToken, {
+		cookieStore.set(SESSION_COOKIE_NAME, idToken, {
 			httpOnly: true,
 			secure: process.env.NODE_ENV === 'production',
 			sameSite: 'lax',
@@ -69,13 +62,12 @@ export async function loginAction(
 		return { error: 'Invalid email or password credentials.' };
 	}
 
-	// 4. Redirect to protected dashboard
 	redirect('/admin/dashboard');
 }
 
 export async function logoutAction() {
 	const cookieStore = await cookies();
-	cookieStore.delete('session');
+	cookieStore.delete(SESSION_COOKIE_NAME);
 	redirect('/admin/login');
 }
 
@@ -86,11 +78,6 @@ const forgotPasswordSchema = z.object({
 		.email('Invalid email address'),
 });
 
-export type ForgotPasswordFormState = {
-	success?: boolean;
-	message?: string;
-	error?: string;
-};
 
 export async function forgotPasswordAction(
 	prevState: ForgotPasswordFormState | null,
