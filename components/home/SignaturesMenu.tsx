@@ -2,7 +2,7 @@
 
 
 import { useAppSelector } from '@/store/hooks';
-import MenuItemCard, { MenuItemCardSkeleton } from './MenuItemCard';
+import MenuItemCard, { MenuItemCardSkeleton } from './PublicMenuItemCard';
 export default function SignaturesMenu() {
 	const { items: menuItems, loading } = useAppSelector(state => state.menu);
 	const cookieList = Object.values(menuItems);

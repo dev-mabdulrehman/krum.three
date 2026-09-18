@@ -12,7 +12,11 @@ interface MenuItemCardProps {
 	onDelete: (item: MenuItem) => void;
 }
 
-export function MenuItemCard({ item, onEdit, onDelete }: MenuItemCardProps) {
+export function AdminMenuItemRow({
+	item,
+	onEdit,
+	onDelete,
+}: MenuItemCardProps) {
 	const [showConfirm, setShowConfirm] = useState(false);
 
 	const handleConfirmDelete = () => {
@@ -116,7 +120,7 @@ export function MenuItemCard({ item, onEdit, onDelete }: MenuItemCardProps) {
 	);
 }
 
-export function MenuItemCardSkeleton() {
+export function AdminMenuItemRowSkeleton() {
 	return (
 		<div className='flex justify-between items-start gap-4 py-4 animate-pulse'>
 			<div className='flex items-start gap-4 w-full'>

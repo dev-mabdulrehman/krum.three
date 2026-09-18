@@ -4,7 +4,7 @@ import Button from '@/components/admin/Button';
 import FormHeader from '@/components/admin/FormHeader';
 import { MenuItem } from '@/types';
 import { Plus } from 'lucide-react';
-import { MenuItemCard, MenuItemCardSkeleton } from './MenuItemCard';
+import { AdminMenuItemRow, AdminMenuItemRowSkeleton } from './AdminMenuItemRow';
 
 interface MenuItemListProps {
 	items: MenuItem[];
@@ -35,10 +35,10 @@ export function MenuItemList({
 			</div>
 			{loading
 				? Array.from({ length: 2 }).map((_, i) => (
-						<MenuItemCardSkeleton key={i} />
+						<AdminMenuItemRowSkeleton key={i} />
 					))
 				: items.map(item => (
-						<MenuItemCard
+						<AdminMenuItemRow
 							key={item.id}
 							item={item}
 							onEdit={onEditItem}
