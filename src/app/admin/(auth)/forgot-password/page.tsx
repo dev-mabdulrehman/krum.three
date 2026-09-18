@@ -1,9 +1,9 @@
 'use client';
 
-import { forgotPasswordAction } from '@/actions/login/actions';
 import Button from '@/components/admin/Button';
 import FormHeader from '@/components/admin/FormHeader';
 import Input from '@/components/admin/Input';
+import { forgotPasswordAction } from '@/features/auth/actions';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Mail } from 'lucide-react';
 import Link from 'next/link';

@@ -24,9 +24,20 @@ export type FormState = {
 
 export async function loginAction(
 	prevState: FormState | null,
-	data: z.infer<typeof loginSchema>,
+	formData: FormData | z.infer<typeof loginSchema>,
 ): Promise<FormState> {
-	const parsed = loginSchema.safeParse(data);
+	// Extract raw values depending on whether FormData or a JS object was passed
+	const rawEmail =
+		formData instanceof FormData ? formData.get('email') : formData?.email;
+	const rawPassword =
+		formData instanceof FormData
+			? formData.get('password')
+			: formData?.password;
+
+	const parsed = loginSchema.safeParse({
+		email: rawEmail,
+		password: rawPassword,
+	});
 
 	if (!parsed.success) {
 		return { error: 'Invalid input data provided.' };
@@ -35,7 +46,7 @@ export async function loginAction(
 	const { email, password } = parsed.data;
 
 	try {
-		// 1. Authenticate with Client SDK
+		// 1. Authenticate with Firebase Client SDK
 		const userCredential = await signInWithEmailAndPassword(
 			auth,
 			email,
@@ -47,14 +58,14 @@ export async function loginAction(
 
 		// 3. Store token in HTTP-only cookie
 		const cookieStore = await cookies();
-		cookieStore.set('session', idToken, {
+		cookieStore.set('admin_session', idToken, {
 			httpOnly: true,
 			secure: process.env.NODE_ENV === 'production',
 			sameSite: 'lax',
 			path: '/',
 			maxAge: 60 * 60 * 24 * 7, // 7 days
 		});
-	} catch (err) {
+	} catch (err: any) {
 		return { error: 'Invalid email or password credentials.' };
 	}
 
@@ -83,9 +94,12 @@ export type ForgotPasswordFormState = {
 
 export async function forgotPasswordAction(
 	prevState: ForgotPasswordFormState | null,
-	data: z.infer<typeof forgotPasswordSchema>,
+	formData: FormData | z.infer<typeof forgotPasswordSchema>,
 ): Promise<ForgotPasswordFormState> {
-	const parsed = forgotPasswordSchema.safeParse(data);
+	const rawEmail =
+		formData instanceof FormData ? formData.get('email') : formData?.email;
+
+	const parsed = forgotPasswordSchema.safeParse({ email: rawEmail });
 
 	if (!parsed.success) {
 		return { error: 'Invalid email address provided.' };
