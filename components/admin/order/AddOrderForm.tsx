@@ -2,26 +2,25 @@
 
 import Button from '@/components/admin/Button';
 import Input from '@/components/admin/Input';
+import { useAppSelector } from '@/store/hooks';
+import { MenuItem } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
-    Box,
-    Globe,
-    Hash,
-    Plus,
-    ShoppingBag,
-    Trash2,
-    User,
+	Box,
+	Globe,
+	Hash,
+	Phone,
+	Plus,
+	ShoppingBag,
+	Trash2,
+	User,
 } from 'lucide-react';
-import { useFieldArray, useForm } from 'react-hook-form';
+import { useEffect } from 'react';
+import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 
-// Static menu items for selection (Replace with Firebase query later)
-export const MENU_ITEMS = [
-	{ id: '1', name: 'Very Velvet Cookie', price: 350 },
-	{ id: '2', name: 'Salted Caramel Cookie', price: 320 },
-	{ id: '3', name: 'Triple Chocolate Brownie', price: 400 },
-	{ id: '4', name: 'Classic Glazed Donut', price: 200 },
-];
+const pakMobileRegex =
+	/^(?:(?:\+92|0092)?\(?0?\)?\d{3}\)?[\s.-]?\d{7}|03\d{2}[-.\s]?\d{7}|03\d{9})$/;
 
 export const orderItemSchema = z.object({
 	itemId: z.string().min(1, 'Please select an item'),
@@ -29,11 +28,21 @@ export const orderItemSchema = z.object({
 		.number({ message: 'Quantity must be a valid number' })
 		.min(1, 'Min quantity is 1'),
 	unit: z.string().min(1, 'Unit required'),
+	piecePrice: z
+		.number({ message: 'Piece price must be a valid number' })
+		.min(0, 'Piece price cannot be negative'),
 });
 
 export const orderSchema = z.object({
 	source: z.string().min(1, 'Source platform is required'),
 	customer: z.string().min(1, 'Customer name is required'),
+	customer_contact: z
+		.string()
+		.min(1, 'Contact number is required')
+		.regex(
+			pakMobileRegex,
+			'Please enter a valid Pakistani phone number (e.g., 03001234567 or +923001234567)',
+		),
 	items: z
 		.array(orderItemSchema)
 		.min(1, 'At least one item is required in the order'),
@@ -49,11 +58,15 @@ interface AddOrderFormProps {
 }
 
 export function AddOrderForm({ onSubmit, onCancel }: AddOrderFormProps) {
+	const { items: menuData, loading } = useAppSelector(state => state.menu);
+	const menuItems = Object.values(menuData);
+
 	const {
 		register,
 		control,
 		handleSubmit,
 		reset,
+		setValue,
 		formState: { errors, isSubmitting },
 	} = useForm<OrderFormData>({
 		resolver: zodResolver(orderSchema),
@@ -61,11 +74,13 @@ export function AddOrderForm({ onSubmit, onCancel }: AddOrderFormProps) {
 		defaultValues: {
 			source: 'Phone/Manual',
 			customer: '',
+			customer_contact: '',
 			items: [
 				{
-					itemId: MENU_ITEMS[0]?.id || '',
+					itemId: '',
 					qtyCount: 1,
-					unit: 'Box',
+					unit: 'Piece',
+					piecePrice: 0,
 				},
 			],
 		},
@@ -76,9 +91,36 @@ export function AddOrderForm({ onSubmit, onCancel }: AddOrderFormProps) {
 		name: 'items',
 	});
 
+	// 1. Watch all items safely at the top level
+	const watchedItems = useWatch({
+		control,
+		name: 'items',
+	});
+
+	// 2. Automatically sync piecePrice whenever itemId changes
+	useEffect(() => {
+		if (!watchedItems) return;
+
+		watchedItems.forEach((item, index) => {
+			console.log('Watched Item:', item, 'at index', index);
+			if (!item?.itemId) return;
+
+			const selectedMenuItem = menuItems.find(m => m.id === item.itemId);
+			if (
+				selectedMenuItem &&
+				item.piecePrice !== selectedMenuItem.price
+			) {
+				setValue(`items.${index}.piecePrice`, selectedMenuItem.price, {
+					shouldValidate: true,
+					shouldDirty: true,
+				});
+			}
+		});
+	}, [watchedItems, menuItems, setValue]);
+
 	const handleFormSubmit = async (data: OrderFormData) => {
+		console.log('Form Data:', data);
 		await onSubmit(data);
-		reset();
 	};
 
 	return (
@@ -126,6 +168,19 @@ export function AddOrderForm({ onSubmit, onCancel }: AddOrderFormProps) {
 				/>
 			</div>
 
+			{/* Customer Contact */}
+			<div className='flex flex-col gap-1 w-full'>
+				<label className='block font-medium text-gray-700 text-xs uppercase'>
+					Customer Contact
+				</label>
+				<Input
+					placeholder='e.g. 03001234567'
+					icon={<Phone size={18} />}
+					error={errors.customer_contact?.message}
+					{...register('customer_contact')}
+				/>
+			</div>
+
 			{/* Dynamic Items Section */}
 			<div className='space-y-3 pt-2'>
 				<div className='flex justify-between items-center'>
@@ -136,9 +191,10 @@ export function AddOrderForm({ onSubmit, onCancel }: AddOrderFormProps) {
 						type='button'
 						onClick={() =>
 							append({
-								itemId: MENU_ITEMS[0]?.id || '',
+								itemId: '',
 								qtyCount: 1,
-								unit: 'Box',
+								unit: 'Piece',
+								piecePrice: 0,
 							})
 						}
 						className='flex items-center gap-1 font-medium text-primary text-xs hover:underline'
@@ -181,17 +237,36 @@ export function AddOrderForm({ onSubmit, onCancel }: AddOrderFormProps) {
 									<ShoppingBag size={18} />
 								</span>
 								<select
-									{...register(`items.${index}.itemId`)}
+									{...register(`items.${index}.itemId`, {
+										// 3. Instant price sync on drop-down selection
+										onChange: e => {
+											const selectedId = e.target.value;
+											const matched = menuItems.find(
+												m => m.id === selectedId,
+											);
+											if (matched) {
+												setValue(
+													`items.${index}.piecePrice`,
+													matched.price,
+													{ shouldValidate: true },
+												);
+											}
+										},
+									})}
 									className='bg-transparent p-2 pl-9 rounded outline-none w-full text-sm appearance-none cursor-pointer'
 								>
 									<option value='' disabled>
 										Select Menu Item
 									</option>
-									{MENU_ITEMS.map(item => (
-										<option key={item.id} value={item.id}>
-											{item.name} (${item.price})
-										</option>
-									))}
+									{!loading &&
+										menuItems.map((item: MenuItem) => (
+											<option
+												key={item.id}
+												value={item.id}
+											>
+												{item.name} (${item.price})
+											</option>
+										))}
 								</select>
 							</div>
 							{errors.items?.[index]?.itemId?.message && (
@@ -243,7 +318,7 @@ export function AddOrderForm({ onSubmit, onCancel }: AddOrderFormProps) {
 				))}
 			</div>
 
-			{/* Optional inline controls if modal footer is not used */}
+			{/* Submit Controls */}
 			{onCancel && (
 				<div className='flex justify-end gap-2 pt-2'>
 					<Button

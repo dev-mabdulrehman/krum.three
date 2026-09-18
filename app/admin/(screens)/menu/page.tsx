@@ -1,27 +1,23 @@
 'use client';
 
-import { MenuFormData } from '@/components/admin/menu/AddMenuItemForm';
 import { AddMenuItemModal } from '@/components/admin/menu/AddMenuItemModal';
 import { MenuItemList } from '@/components/admin/menu/MenuItemList';
-import { useFirestoreSubscription } from '@/hooks/useFirestoreSubscription';
-import { useAppDispatch } from '@/store/hooks';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import {
 	addMenuItem,
 	deleteMenuItem,
 	updateMenuItem,
 } from '@/store/slices/menuSlice';
-import { MenuItem, MixedImageData } from '@/types';
+import { MenuFormData, MenuItem, MixedImageData } from '@/types';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 
 export default function MenuPage() {
 	const dispatch = useAppDispatch();
-	const {
-		loading: menuItemsLoading,
-		data: menuItemsData,
-		error: menuItemsError,
-	} = useFirestoreSubscription<MenuItem>('menuItems', []);
-	const menuItems = Object.values(menuItemsData);
+	const { items, loading: menuItemsLoading } = useAppSelector(
+		state => state.menu,
+	);
+	const menuItems = Object.values(items);
 
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [editingItem, setEditingItem] = useState<MenuItem | null>(null);

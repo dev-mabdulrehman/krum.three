@@ -76,11 +76,9 @@ export default function OrdersPage() {
 	};
 
 	// Handle Admin Manual Order Submission
-	const handleCreateOrder = async (data: {
-		source: string;
-		customer: string;
-		items: { itemId: string; qtyCount: number; unit: string }[];
-	}) => {};
+	const handleCreateOrder = async (data: unknown) => {
+		console.log('New Order Submitted:', data);
+	};
 
 	const filteredOrders = orders.filter(
 		o =>

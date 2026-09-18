@@ -1,14 +1,10 @@
 'use client';
 
-import { useFirestoreSubscription } from '@/hooks/useFirestoreSubscription';
-import MenuItemCard, { MenuItemCardSkeleton } from './MenuItemCard';
 
+import { useAppSelector } from '@/store/hooks';
+import MenuItemCard, { MenuItemCardSkeleton } from './MenuItemCard';
 export default function SignaturesMenu() {
-	const {
-		data: menuItems,
-		loading,
-		error,
-	} = useFirestoreSubscription('menuItems', []);
+	const { items: menuItems, loading } = useAppSelector(state => state.menu);
 	const cookieList = Object.values(menuItems);
 
 	return (

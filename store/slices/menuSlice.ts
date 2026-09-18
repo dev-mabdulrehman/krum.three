@@ -1,7 +1,12 @@
-import { MenuFormData } from '@/components/admin/menu/AddMenuItemForm';
 import { db, storage } from '@/config/firebase';
 import { uploadImageIfFile } from '@/lib/utils';
-import { Imgs, MenuItem, MixedImageData } from '@/types';
+import {
+	AddMenuItemPayload,
+	Imgs,
+	MenuItem,
+	MenuState,
+	UpdateMenuItemPayload,
+} from '@/types';
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import {
 	collection,
@@ -13,16 +18,6 @@ import {
 	updateDoc,
 } from 'firebase/firestore';
 import { deleteObject, ref } from 'firebase/storage';
-
-export type NewMenuItem = Omit<MenuItem, 'id'>;
-
-interface MenuState {
-	items: Record<string, MenuItem>;
-	bannerText: string;
-	activeFilter: string;
-	loading: boolean;
-	error: null | string;
-}
 
 const initialState: MenuState = {
 	bannerText:
@@ -52,12 +47,6 @@ export const fetchMenuItems = createAsyncThunk(
 		}
 	},
 );
-
-export interface AddMenuItemPayload {
-	data: MenuFormData;
-	imagesData: MixedImageData[];
-	coverIndex: number;
-}
 
 export const addMenuItem = createAsyncThunk(
 	'menu/addMenuItem',
@@ -116,14 +105,6 @@ export const addMenuItem = createAsyncThunk(
 	},
 );
 
-export interface UpdateMenuItemPayload {
-	id: string; // Existing item ID/slug
-	data: Partial<NewMenuItem>;
-	imagesData: MixedImageData[];
-	coverIndex: number;
-	oldImgs?: Imgs[];
-}
-
 export const updateMenuItem = createAsyncThunk(
 	'menu/updateMenuItem',
 	async (payload: UpdateMenuItemPayload, { rejectWithValue }) => {
@@ -141,7 +122,6 @@ export const updateMenuItem = createAsyncThunk(
 			const newSlug = data.slug || oldSlug;
 			const isSlugChanged = newSlug !== oldSlug;
 
-			// 1. Check if new slug conflicts with an existing item
 			if (isSlugChanged) {
 				const newDocRef = doc(db, 'menuItems', newSlug);
 				const newDocSnap = await getDoc(newDocRef);
@@ -152,7 +132,6 @@ export const updateMenuItem = createAsyncThunk(
 				}
 			}
 
-			// 2. Process image array (upload new files, retain existing URLs)
 			const processedImages: Imgs[] = [];
 
 			for (let index = 0; index < imagesData.length; index++) {
@@ -280,6 +259,7 @@ const menuSlice = createSlice({
 		},
 		setMenuItems(state, action: PayloadAction<Record<string, MenuItem>>) {
 			state.items = action.payload;
+			state.loading = false;
 		},
 		updateBannerText(state, action: PayloadAction<string>) {
 			state.bannerText = action.payload;
@@ -323,5 +303,5 @@ const menuSlice = createSlice({
 	},
 });
 
-export const { setFilter, updateBannerText } = menuSlice.actions;
+export const { setFilter, updateBannerText, setMenuItems } = menuSlice.actions;
 export default menuSlice.reducer;

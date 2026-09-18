@@ -1,8 +1,9 @@
+import { AppInitializer } from '@/components/AppInitializer';
 import type { Metadata } from 'next';
 import { Playfair_Display, Plus_Jakarta_Sans, Poppins } from 'next/font/google';
-import { Toaster } from 'react-hot-toast';
 import './globals.css';
 import StoreProvider from './StoreProvider';
+
 const poppins = Poppins({
 	subsets: ['latin'],
 	weight: ['400', '500', '600', '700'],
@@ -59,10 +60,7 @@ export default function RootLayout({
 				className={`${poppins.className} ${playfair.variable} ${jakarta.variable} bg-cream selection:bg-forest text-forest-dark selection:text-white antialiased`}
 			>
 				<StoreProvider>
-					<Toaster />
-					{/* <Analytics /> */}
-					{/* <SpeedInsights /> */}
-					{children}
+					<AppInitializer>{children}</AppInitializer>
 				</StoreProvider>
 			</body>
 		</html>

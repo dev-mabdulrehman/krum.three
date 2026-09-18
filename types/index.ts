@@ -1,3 +1,6 @@
+import menuSchema from '@/schema/menuSchema';
+import z from 'zod';
+
 export interface CartItem {
 	cartId: string;
 	id: string;
@@ -63,4 +66,26 @@ export interface ProductRating {
 	averageRating: number;
 	totalReviews: number;
 	individualReviews: ReviewItem[];
+}
+export type MenuFormData = z.infer<typeof menuSchema>;
+export interface AddMenuItemPayload {
+	data: MenuFormData;
+	imagesData: MixedImageData[];
+	coverIndex: number;
+}
+export type NewMenuItem = Omit<MenuItem, 'id'>;
+export interface UpdateMenuItemPayload {
+	id: string; // Existing item ID/slug
+	data: Partial<NewMenuItem>;
+	imagesData: MixedImageData[];
+	coverIndex: number;
+	oldImgs?: Imgs[];
+}
+
+export interface MenuState {
+	items: Record<string, MenuItem>;
+	bannerText: string;
+	activeFilter: string;
+	loading: boolean;
+	error: null | string;
 }

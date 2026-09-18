@@ -1,12 +1,9 @@
 'use client';
 
 import Button from '@/components/admin/Button';
-import {
-	AddMenuItemForm,
-	MenuFormData,
-} from '@/components/admin/menu/AddMenuItemForm';
+import { AddMenuItemForm } from '@/components/admin/menu/AddMenuItemForm';
 import { Modal } from '@/components/ui/Modal';
-import { MenuItem, MixedImageData } from '@/types';
+import { MenuFormData, MenuItem, MixedImageData } from '@/types';
 import { Loader2, Plus, Save } from 'lucide-react';
 import { useState } from 'react';
 
